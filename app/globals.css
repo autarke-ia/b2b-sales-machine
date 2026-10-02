@@ -1,0 +1,189 @@
+@import "tailwindcss";
+
+/*
+ * Sistema de design da marca Autarkeia — portado de autarkeia-method (FE-1 / AUT-124),
+ * adaptado ao protótipo B2B Sales Machine. Marca: light-dominant com a sidebar ink como
+ * peça-clímax; filetes de 1px (não sombras); radius-0; eyebrow mono com filete magenta;
+ * cor FUNCIONAL acessível (o significado-por-cor importa, mas NUNCA só cor).
+ * Fonte de verdade dos tokens; nenhum hex fora daqui.
+ */
+@theme {
+  /* ── Superfícies (light-dominant, em camadas de tom claro) ── */
+  --color-bg: #f3f4f6; /* canvas */
+  --color-panel: #ffffff; /* cartões/painéis */
+  --color-zebra: #fafbfc;
+  --color-hover: #eef0f3; /* shift de superfície no hover (claro) — o sinal de hover (R1) */
+  --color-hover-ink: #22272e; /* idem sobre a sidebar ink (lift perceptível; hairline fica ESTÁTICO) */
+  --color-fg: #0d0f12;
+  --color-muted: #5b6068; /* texto secundário (AA sobre claro) */
+  --color-faint: #8a9099; /* SÓ decorativo — nunca dado de negócio */
+  --color-line: #e6e8ec; /* hairline */
+  --color-line2: #eef0f3;
+  --color-ink: #101215; /* sidebar clímax */
+  --color-ink-fg: #e9ebee;
+  --color-ink-line: #262b31;
+
+  /*
+   * Semânticos — DOIS papéis por superfície clara:
+   *  --color-{s}    = hue de marca VÍVIDO (dots, filetes, fills, ícones grandes)
+   *  --color-{s}-fg = variante ESCURECIDA acessível p/ TEXTO (≥4.5:1 no branco)
+   * (No ink, os vívidos já passam — usados diretos.)
+   */
+  --color-ok: #0f9d76;
+  --color-ok-fg: #0a7150; /* verde texto (dentro do ICP) */
+  --color-wait: #e01a7f;
+  --color-wait-fg: #b3005f; /* magenta texto (pendente/atenção) */
+  --color-ia: #0898b7;
+  --color-ia-fg: #0a7183; /* ciano texto (IA/links) */
+  --color-bad: #d4456b;
+  --color-bad-fg: #b02a4f; /* vermelho texto (fora do ICP/refutado) */
+  --color-broken: #c77a0a;
+  --color-broken-fg: #8f5900; /* âmbar texto (snapshot obsoleto/lastro quebrado) */
+  --color-accent: #f02188; /* magenta de marca — filete do eyebrow + foco */
+
+  /* ── Tipografia ── */
+  --font-sans: var(--font-poppins), system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-display: var(--font-poppins), system-ui, sans-serif; /* Codec Pro pendente (placeholder Poppins) */
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Escala de tipo tokenizada (~7, zero fracionário) */
+  --text-2xs: 0.625rem; /* 10 — eyebrow/mono */
+  --text-xs: 0.75rem; /* 12 */
+  --text-sm: 0.875rem; /* 14 — corpo */
+  --text-base: 1rem; /* 16 */
+  --text-lg: 1.25rem; /* 20 */
+  --text-xl: 1.5rem; /* 24 */
+  --text-2xl: 2rem; /* 32 — KPI/título */
+
+  --radius-none: 0px;
+}
+
+/* Tokens não-cor/tipo (tints, motion, densidade, foco) — CSS vars diretas. */
+:root {
+  --tint-ok: color-mix(in srgb, var(--color-ok) 9%, transparent);
+  --tint-wait: color-mix(in srgb, var(--color-wait) 7%, transparent);
+  --tint-ia: color-mix(in srgb, var(--color-ia) 8%, transparent);
+  --tint-bad: color-mix(in srgb, var(--color-bad) 8%, transparent);
+  --tint-broken: color-mix(in srgb, var(--color-broken) 10%, transparent);
+
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  --row-compact: 2rem; /* 32 */
+  --row-cozy: 2.5rem; /* 40 */
+
+  --focus: var(--color-accent); /* anel de foco sobre claro */
+  --focus-on-ink: #ff5aa8; /* anel de foco sobre ink (≥3:1) */
+}
+
+@layer base {
+  * {
+    border-color: var(--color-line);
+  }
+  html,
+  body {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  a {
+    color: var(--color-ia-fg);
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--color-accent);
+    color: #fff;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
+}
+
+/*
+ * Recipe de HOVER (R1) — o sinal de hover é o SHIFT DE SUPERFÍCIE, nunca um filete
+ * preto que "salta" nem sombra (a marca é radius-0/hairline-sem-sombra). A cor da
+ * BORDA não muda no hover — só o fundo.
+ */
+@utility interactive {
+  transition: background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+  &:hover {
+    background-color: var(--color-hover);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+@utility interactive-ink {
+  transition: background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+  &:hover {
+    background-color: var(--color-hover-ink);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+@layer components {
+  /* Eyebrow — rótulo mono UPPERCASE com o filete magenta (o "tell" da marca). */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 1.25rem;
+    height: 2px;
+    background: var(--color-accent);
+    flex: 0 0 auto;
+  }
+  /* Superfície ink (sidebar clímax): redefine os tokens de texto/linha e o foco. */
+  .on-ink {
+    background: var(--color-ink);
+    color: var(--color-ink-fg);
+    --color-line: var(--color-ink-line);
+    --color-muted: #9aa0a8;
+    --focus: var(--focus-on-ink);
+  }
+  .on-ink .eyebrow {
+    color: #8a9099;
+  }
+  /* Numérico de negócio: tabular + mono. */
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+  .mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+}
