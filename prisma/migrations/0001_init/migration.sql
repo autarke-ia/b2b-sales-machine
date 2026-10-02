@@ -222,7 +222,7 @@ CREATE TABLE "Ruleset" (
     "dataset_id" UUID NOT NULL,
     "status" "RulesetStatus" NOT NULL,
     "config" JSONB NOT NULL,
-    "base_ruleset_id" UUID,
+    "base_ruleset_id" TEXT,
     "version" INTEGER NOT NULL DEFAULT 1,
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "created_by" UUID NOT NULL,
@@ -517,10 +517,13 @@ CREATE INDEX "Opportunity_company_id_archived_at_idx" ON "Opportunity"("company_
 CREATE UNIQUE INDEX "Opportunity_dataset_id_external_id_key" ON "Opportunity"("dataset_id", "external_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Ruleset_base_ruleset_id_key" ON "Ruleset"("base_ruleset_id");
+CREATE INDEX "Ruleset_dataset_id_status_idx" ON "Ruleset"("dataset_id", "status");
 
 -- CreateIndex
-CREATE INDEX "Ruleset_dataset_id_status_idx" ON "Ruleset"("dataset_id", "status");
+CREATE INDEX "Ruleset_base_ruleset_id_idx" ON "Ruleset"("base_ruleset_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Ruleset_id_dataset_id_key" ON "Ruleset"("id", "dataset_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "SourceFile_dataset_id_sha256_key" ON "SourceFile"("dataset_id", "sha256");
@@ -595,6 +598,9 @@ CREATE UNIQUE INDEX "IdempotencyRecord_user_id_method_route_key_key" ON "Idempot
 ALTER TABLE "Session" ADD CONSTRAINT "Session_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Dataset" ADD CONSTRAINT "Dataset_active_ruleset_id_fkey" FOREIGN KEY ("active_ruleset_id") REFERENCES "Ruleset"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Company" ADD CONSTRAINT "Company_dataset_id_fkey" FOREIGN KEY ("dataset_id") REFERENCES "Dataset"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -614,6 +620,12 @@ ALTER TABLE "Opportunity" ADD CONSTRAINT "Opportunity_dataset_id_fkey" FOREIGN K
 
 -- AddForeignKey
 ALTER TABLE "Opportunity" ADD CONSTRAINT "Opportunity_company_id_dataset_id_fkey" FOREIGN KEY ("company_id", "dataset_id") REFERENCES "Company"("id", "dataset_id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Ruleset" ADD CONSTRAINT "Ruleset_dataset_id_fkey" FOREIGN KEY ("dataset_id") REFERENCES "Dataset"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Ruleset" ADD CONSTRAINT "Ruleset_base_ruleset_id_dataset_id_fkey" FOREIGN KEY ("base_ruleset_id", "dataset_id") REFERENCES "Ruleset"("id", "dataset_id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ImportBatch" ADD CONSTRAINT "ImportBatch_dataset_id_fkey" FOREIGN KEY ("dataset_id") REFERENCES "Dataset"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -646,7 +658,8 @@ ALTER TABLE "ReviewSessionEvent" ADD CONSTRAINT "ReviewSessionEvent_session_id_f
 -- ============================================================
 -- Auditoria append-only e privilégios (doc 04 §3, doc 07)
 -- Executa como papel OWNER (DATABASE_MIGRATION_URL). O papel da
--- aplicação (b2bsm_app) é criado antes por scripts/bootstrap-db.ts.
+-- aplicação (b2bsm_app) é criado antes por scripts/bootstrap-db.ts
+-- (ou `pnpm db:setup`, que impõe a ordem bootstrap → migrate → seed).
 -- ============================================================
 
 -- No máximo uma sessão de revisão aberta/pausada por usuário/empresa (doc 03 §9).
@@ -654,8 +667,12 @@ CREATE UNIQUE INDEX "review_sessions_one_open_per_user_company"
   ON "ReviewSession" ("user_id", "company_id")
   WHERE state IN ('active', 'paused');
 
--- Função de escrita da trilha: SECURITY DEFINER com owner ≠ app e search_path fixo.
-CREATE OR REPLACE FUNCTION audit_append_only() RETURNS trigger
+-- Linhagem de regras (doc 04 §10): um rascunho nunca é base de si mesmo.
+ALTER TABLE "Ruleset" ADD CONSTRAINT ruleset_no_self_base CHECK (base_ruleset_id IS NULL OR base_ruleset_id <> id);
+
+-- Função de escrita da trilha: SECURITY DEFINER com owner ≠ app, search_path fixo
+-- e nomes de tabela QUALIFICADOS (doc 07 §3) — sem resolução via pg_temp.
+CREATE OR REPLACE FUNCTION public.audit_append_only() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   v_actor uuid;
@@ -681,25 +698,29 @@ BEGIN
   v_entity := COALESCE(v_new->>'id', v_old->>'id')::uuid;
   v_op := CASE TG_OP WHEN 'INSERT' THEN 'create' WHEN 'UPDATE' THEN 'update' ELSE 'delete' END;
 
+  -- Falha fechada (doc 07 §3): mutação sem ator válido reverte a transação.
+  -- (avalia ANTES do no-op: sem contexto, nem no-op passa silenciosamente)
+  IF v_actor IS NULL THEN
+    RAISE EXCEPTION 'AUDIT_ACTOR_MISSING: % em % sem contexto de ator', TG_OP, TG_TABLE_NAME;
+  END IF;
+
   -- No-op não gera evento nem ruído (doc 07 §2).
   IF TG_OP = 'UPDATE' AND v_old = v_new THEN
     RETURN NEW;
   END IF;
 
-  -- Falha fechada (doc 07 §3): mutação de negócio sem ator válido reverte a transação.
-  IF v_actor IS NULL THEN
-    RAISE EXCEPTION 'AUDIT_ACTOR_MISSING: % em % sem contexto de ator', TG_OP, TG_TABLE_NAME;
-  END IF;
-
   IF TG_OP = 'UPDATE' THEN
+    -- Campos de negócio efetivamente alterados (doc 07 §2); colunas técnicas
+    -- versionadas ficam em version_before/after, não em changed_fields.
     SELECT COALESCE(jsonb_agg(k.key ORDER BY k.key), '[]'::jsonb) INTO v_changed
     FROM jsonb_object_keys(v_new) AS k(key)
-    WHERE k.key <> 'updated_at' AND (v_old -> k.key) IS DISTINCT FROM (v_new -> k.key);
+    WHERE k.key NOT IN ('updated_at', 'updated_by', 'version', 'input_revision')
+      AND (v_old -> k.key) IS DISTINCT FROM (v_new -> k.key);
   ELSE
     v_changed := NULL;
   END IF;
 
-  INSERT INTO "AuditEvent" ("id", "dataset_id", "entity_type", "entity_id", "operation",
+  INSERT INTO public."AuditEvent" ("id", "dataset_id", "entity_type", "entity_id", "operation",
     "version_before", "version_after", "changed_fields", "before", "after",
     "actor_user_id", "source", "request_id", "import_id", "suggestion_id", "occurred_at")
   VALUES (gen_random_uuid(), v_dataset, TG_TABLE_NAME, v_entity, v_op,
@@ -710,18 +731,20 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER audit_company       AFTER INSERT OR UPDATE OR DELETE ON "Company"       FOR EACH ROW EXECUTE FUNCTION audit_append_only();
-CREATE TRIGGER audit_signal        AFTER INSERT OR UPDATE OR DELETE ON "Signal"        FOR EACH ROW EXECUTE FUNCTION audit_append_only();
-CREATE TRIGGER audit_contact       AFTER INSERT OR UPDATE OR DELETE ON "Contact"       FOR EACH ROW EXECUTE FUNCTION audit_append_only();
-CREATE TRIGGER audit_opportunity   AFTER INSERT OR UPDATE OR DELETE ON "Opportunity"   FOR EACH ROW EXECUTE FUNCTION audit_append_only();
-CREATE TRIGGER audit_ruleset       AFTER INSERT OR UPDATE OR DELETE ON "Ruleset"       FOR EACH ROW EXECUTE FUNCTION audit_append_only();
-CREATE TRIGGER audit_dataset       AFTER INSERT OR UPDATE OR DELETE ON "Dataset"       FOR EACH ROW EXECUTE FUNCTION audit_append_only();
+CREATE TRIGGER audit_company       AFTER INSERT OR UPDATE OR DELETE ON "Company"       FOR EACH ROW EXECUTE FUNCTION public.audit_append_only();
+CREATE TRIGGER audit_signal        AFTER INSERT OR UPDATE OR DELETE ON "Signal"        FOR EACH ROW EXECUTE FUNCTION public.audit_append_only();
+CREATE TRIGGER audit_contact       AFTER INSERT OR UPDATE OR DELETE ON "Contact"       FOR EACH ROW EXECUTE FUNCTION public.audit_append_only();
+CREATE TRIGGER audit_opportunity   AFTER INSERT OR UPDATE OR DELETE ON "Opportunity"   FOR EACH ROW EXECUTE FUNCTION public.audit_append_only();
+CREATE TRIGGER audit_ruleset       AFTER INSERT OR UPDATE OR DELETE ON "Ruleset"       FOR EACH ROW EXECUTE FUNCTION public.audit_append_only();
+CREATE TRIGGER audit_dataset       AFTER INSERT OR UPDATE OR DELETE ON "Dataset"       FOR EACH ROW EXECUTE FUNCTION public.audit_append_only();
 
--- Papéis: nenhuma tabela acessível a PUBLIC (INV-2/INV-13).
+-- Papéis: nenhuma tabela acessível a PUBLIC; sem TEMP nem CREATE no schema (INV-2).
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM PUBLIC;
-GRANT USAGE ON SCHEMA public TO b2bsm_app;
+REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+DO $$ BEGIN EXECUTE 'REVOKE TEMPORARY ON DATABASE ' || quote_ident(current_database()) || ' FROM PUBLIC'; END $$;
 
 -- Papel da aplicação: sem DDL, sem DELETE de negócio, sem escrita na trilha.
+GRANT USAGE ON SCHEMA public TO b2bsm_app;
 GRANT SELECT, INSERT, UPDATE ON "User", "Session", "LoginAttempt", "Dataset", "Company",
   "Signal", "Contact", "Opportunity", "Ruleset", "SourceFile", "ImportBatch", "ImportRow",
   "AnalysisJob", "AnalysisJobItem", "Suggestion", "ReviewDecision", "Assessment",
@@ -736,3 +759,4 @@ GRANT DELETE ON "IdempotencyRecord", "LoginAttempt", "Session" TO b2bsm_app;
 -- Trilha: leitura para a app; escrita apenas pela função SECURITY DEFINER (owner).
 GRANT SELECT ON "AuditEvent" TO b2bsm_app;
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON "AuditEvent" FROM b2bsm_app;
+REVOKE EXECUTE ON FUNCTION public.audit_append_only() FROM PUBLIC;

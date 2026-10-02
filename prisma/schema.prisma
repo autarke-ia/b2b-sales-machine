@@ -194,6 +194,8 @@ model Dataset {
   analysis_jobs      AnalysisJob[]
   review_sessions    ReviewSession[]
   ranking_snapshots  RankingSnapshot[]
+  rulesets           Ruleset[]
+  active_ruleset     Ruleset?           @relation("ActiveRuleset", fields: [active_ruleset_id], references: [id])
 
   @@index([kind])
 }
@@ -325,7 +327,7 @@ model Ruleset {
   dataset_id      String         @db.Uuid
   status          RulesetStatus
   config          Json
-  base_ruleset_id String?        @unique @db.Uuid
+  base_ruleset_id String?
   version         Int            @default(1)
   created_at      DateTime       @default(now()) @db.Timestamptz(6)
   created_by      String         @db.Uuid
@@ -333,8 +335,16 @@ model Ruleset {
   published_by    String?        @db.Uuid
   updated_at      DateTime?      @db.Timestamptz(6)
   updated_by      String?        @db.Uuid
+  dataset         Dataset        @relation(fields: [dataset_id], references: [id])
+  base            Ruleset?       @relation("RulesetLineage", fields: [base_ruleset_id, dataset_id], references: [id, dataset_id])
+  children        Ruleset[]      @relation("RulesetLineage")
+  active_for      Dataset[]      @relation("ActiveRuleset")
 
+  // Linhagem (doc 04 §10): rascunhos irmãos compartilham a mesma base publicada,
+  // por isso base_ruleset_id NÃO é unique; a FK composta impede base de outra base.
+  @@unique([id, dataset_id])
   @@index([dataset_id, status])
+  @@index([base_ruleset_id])
 }
 
 model SourceFile {

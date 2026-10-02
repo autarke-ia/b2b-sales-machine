@@ -2,12 +2,17 @@
  * Reset EXPLICITAMENTE acionado do dataset demo (`pnpm db:reset-demo`) — para e2e e
  * ensaio de demo. Nunca executado na inicialização do servidor (doc 01 §8). Remove o
  * dataset demo na ordem de FK e re-carrega o seed, com contexto de ator na trilha.
+ * Usa a credencial OWNER (DATABASE_MIGRATION_URL): o reset destrutivo não pertence à
+ * credencial da app, que não tem DELETE de negócio.
  */
 import { PrismaClient } from "@prisma/client";
 import "dotenv/config";
 import { seedDemo, TECHNICAL_ACTOR_ID } from "./demo";
 
-const prisma = new PrismaClient();
+const migrationUrl = process.env.DATABASE_MIGRATION_URL;
+if (!migrationUrl) throw new Error("DATABASE_MIGRATION_URL ausente — o reset-demo exige a credencial owner.");
+
+const prisma = new PrismaClient({ datasourceUrl: migrationUrl });
 
 async function deleteDemoDataset(datasetId: string): Promise<void> {
   await prisma.$transaction(async (tx) => {
