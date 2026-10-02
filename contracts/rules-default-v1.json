@@ -1,0 +1,73 @@
+{
+  "schema_version": "1.0.0",
+  "shared": {
+    "employee_min": 200,
+    "employee_max": 5000,
+    "medium_factor": 0.5,
+    "priority_ufs": [
+      "SP",
+      "RJ",
+      "MG",
+      "ES",
+      "PR",
+      "SC",
+      "RS"
+    ],
+    "other_region_factor": 0.5,
+    "accepted_renewal_windows": [
+      "m0_3",
+      "m4_6"
+    ]
+  },
+  "icp": {
+    "threshold": 60,
+    "required_criteria": [],
+    "weights": {
+      "size": 20,
+      "hr": 14,
+      "benefits": 12,
+      "growth": 10,
+      "employer_branding": 10,
+      "geography": 10,
+      "region": 8,
+      "retention": 8,
+      "renewal": 8
+    }
+  },
+  "priority": {
+    "weights": {
+      "S01": 20,
+      "S02": 14,
+      "S03": 10,
+      "S04": 10,
+      "S05": 10,
+      "S06": 8,
+      "S07": 8,
+      "S08": 10,
+      "S09": 5,
+      "S10": 5
+    },
+    "recent_signal_days": 90,
+    "high_threshold": 70,
+    "medium_threshold": 40
+  },
+  "disqualifiers": {
+    "D01": {
+      "enabled": true,
+      "min_employees": 80
+    },
+    "D02": {
+      "enabled": true
+    },
+    "D03": {
+      "professional_public_only": true
+    },
+    "D04": {
+      "enabled": true
+    },
+    "D05": {
+      "enabled": true,
+      "penalty_points": 20
+    }
+  }
+}

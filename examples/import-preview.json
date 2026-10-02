@@ -1,0 +1,41 @@
+{
+  "data": {
+    "id": "960ca4c9-f501-5787-9102-616b01681188",
+    "dataset_id": "b98e393e-c607-51da-8840-b52becd582b6",
+    "version": 1,
+    "status": "ready",
+    "file_name": "companies.csv",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "target": "companies",
+    "merge_policy": "fill_missing",
+    "base_dataset_revision": 1,
+    "expires_at": "2026-10-02T23:00:00Z",
+    "rows_total": 1,
+    "rows_create": 1,
+    "rows_update": 0,
+    "rows_skip": 0,
+    "errors_count": 0,
+    "warnings_count": 0,
+    "creates_rules_draft": false,
+    "issues": [],
+    "preview_rows": [
+      {
+        "target": "companies",
+        "external_id": "EXAMPLE-001",
+        "action": "create",
+        "changed_fields": [
+          "name",
+          "employees"
+        ],
+        "before": null,
+        "after": {
+          "name": "Empresa de demonstração",
+          "employees": 650
+        }
+      }
+    ]
+  },
+  "meta": {
+    "request_id": "e3350985-42c3-5400-9ed3-d18faf5a7f63"
+  }
+}

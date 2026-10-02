@@ -1,0 +1,6 @@
+﻿rule_id,enabled,min_employees,penalty_points
+D01,true,80,
+D02,true,,
+D03,true,,
+D04,true,,
+D05,true,,20

@@ -1,0 +1,17 @@
+{
+  "package": "ITA Challenge G2 — Allya",
+  "version": "1.0.0",
+  "reference_date": "2026-10-01",
+  "language": "pt-BR",
+  "purpose": "Implementation specification; not a running application",
+  "entrypoint": "README.md",
+  "api": "contracts/openapi.yaml",
+  "backend": "04_BACKEND_GABRIEL.md",
+  "frontend": "05_FRONTEND_MARCO.md",
+  "verification": "VERIFICACAO.md",
+  "reference_engine_tests": {
+    "passed": 52,
+    "failed": 0
+  },
+  "expected_app_integration_tests": "Not executed; application not implemented in this package"
+}

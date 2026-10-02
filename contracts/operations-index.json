@@ -1,0 +1,479 @@
+[
+  {
+    "method": "GET",
+    "path": "/api/v1/health",
+    "id": "health",
+    "summary": "Verificar serviço",
+    "body": null,
+    "response": "HealthResponse",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "id": "login",
+    "summary": "Entrar com usuário pré-cadastrado",
+    "body": "LoginRequest",
+    "response": "AuthSessionResponse",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/session",
+    "id": "session",
+    "summary": "Recuperar sessão e token CSRF",
+    "body": null,
+    "response": "AuthSessionResponse",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/logout",
+    "id": "logout",
+    "summary": "Encerrar sessão",
+    "body": null,
+    "response": null,
+    "status": 204
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/schema",
+    "id": "getSchema",
+    "summary": "Consultar campos e formatos aceitos",
+    "body": null,
+    "response": "SchemaCatalogResponse",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets",
+    "id": "listDatasets",
+    "summary": "Listar bases compartilhadas",
+    "body": null,
+    "response": "DatasetListResponse",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/datasets",
+    "id": "createDataset",
+    "summary": "Criar base vazia com regras iniciais",
+    "body": "DatasetCreate",
+    "response": "DatasetResponse",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}",
+    "id": "getDataset",
+    "summary": "Consultar base e revisão",
+    "body": null,
+    "response": "DatasetResponse",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/companies",
+    "id": "listCompanies",
+    "summary": "Listar companies",
+    "body": null,
+    "response": "CompanyListResponse",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/datasets/{dataset_id}/companies",
+    "id": "createCompany",
+    "summary": "Criar Company",
+    "body": "CompanyCreate",
+    "response": "CompanyResponse",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/companies/{record_id}",
+    "id": "getCompany",
+    "summary": "Consultar Company",
+    "body": null,
+    "response": "CompanyDetailResponse",
+    "status": 200
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/datasets/{dataset_id}/companies/{record_id}",
+    "id": "updateCompany",
+    "summary": "Editar Company",
+    "body": "CompanyPatch",
+    "response": "CompanyResponse",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/datasets/{dataset_id}/companies/{record_id}/archive",
+    "id": "archiveCompany",
+    "summary": "Arquivar ou restaurar Company",
+    "body": "ArchiveRequest",
+    "response": "CompanyResponse",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/companies/{record_id}/history",
+    "id": "historyCompany",
+    "summary": "Consultar histórico de Company",
+    "body": null,
+    "response": "AuditEventListResponse",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/signals",
+    "id": "listSignals",
+    "summary": "Listar signals",
+    "body": null,
+    "response": "SignalListResponse",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/datasets/{dataset_id}/signals",
+    "id": "createSignal",
+    "summary": "Criar Signal",
+    "body": "SignalCreate",
+    "response": "SignalResponse",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/signals/{record_id}",
+    "id": "getSignal",
+    "summary": "Consultar Signal",
+    "body": null,
+    "response": "SignalResponse",
+    "status": 200
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/datasets/{dataset_id}/signals/{record_id}",
+    "id": "updateSignal",
+    "summary": "Editar Signal",
+    "body": "SignalPatch",
+    "response": "SignalResponse",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/datasets/{dataset_id}/signals/{record_id}/archive",
+    "id": "archiveSignal",
+    "summary": "Arquivar ou restaurar Signal",
+    "body": "ArchiveRequest",
+    "response": "SignalResponse",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/signals/{record_id}/history",
+    "id": "historySignal",
+    "summary": "Consultar histórico de Signal",
+    "body": null,
+    "response": "AuditEventListResponse",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/contacts",
+    "id": "listContacts",
+    "summary": "Listar contacts",
+    "body": null,
+    "response": "ContactListResponse",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/datasets/{dataset_id}/contacts",
+    "id": "createContact",
+    "summary": "Criar Contact",
+    "body": "ContactCreate",
+    "response": "ContactResponse",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/contacts/{record_id}",
+    "id": "getContact",
+    "summary": "Consultar Contact",
+    "body": null,
+    "response": "ContactResponse",
+    "status": 200
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/datasets/{dataset_id}/contacts/{record_id}",
+    "id": "updateContact",
+    "summary": "Editar Contact",
+    "body": "ContactPatch",
+    "response": "ContactResponse",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/datasets/{dataset_id}/contacts/{record_id}/archive",
+    "id": "archiveContact",
+    "summary": "Arquivar ou restaurar Contact",
+    "body": "ArchiveRequest",
+    "response": "ContactResponse",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/contacts/{record_id}/history",
+    "id": "historyContact",
+    "summary": "Consultar histórico de Contact",
+    "body": null,
+    "response": "AuditEventListResponse",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/opportunities",
+    "id": "listOpportunities",
+    "summary": "Listar opportunities",
+    "body": null,
+    "response": "OpportunityListResponse",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/datasets/{dataset_id}/opportunities",
+    "id": "createOpportunity",
+    "summary": "Criar Opportunity",
+    "body": "OpportunityCreate",
+    "response": "OpportunityResponse",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/opportunities/{record_id}",
+    "id": "getOpportunity",
+    "summary": "Consultar Opportunity",
+    "body": null,
+    "response": "OpportunityResponse",
+    "status": 200
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/datasets/{dataset_id}/opportunities/{record_id}",
+    "id": "updateOpportunity",
+    "summary": "Editar Opportunity",
+    "body": "OpportunityPatch",
+    "response": "OpportunityResponse",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/datasets/{dataset_id}/opportunities/{record_id}/archive",
+    "id": "archiveOpportunity",
+    "summary": "Arquivar ou restaurar Opportunity",
+    "body": "ArchiveRequest",
+    "response": "OpportunityResponse",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/opportunities/{record_id}/history",
+    "id": "historyOpportunity",
+    "summary": "Consultar histórico de Opportunity",
+    "body": null,
+    "response": "AuditEventListResponse",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/ruleset",
+    "id": "getActiveRules",
+    "summary": "Consultar regras publicadas",
+    "body": null,
+    "response": "RulesetResponse",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/datasets/{dataset_id}/rulesets/drafts",
+    "id": "createRulesDraft",
+    "summary": "Criar rascunho completo de regras",
+    "body": "RulesDraftRequest",
+    "response": "RulesetResponse",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/rulesets/{ruleset_id}",
+    "id": "getRuleset",
+    "summary": "Consultar versão de regras",
+    "body": null,
+    "response": "RulesetResponse",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/datasets/{dataset_id}/rulesets/{ruleset_id}/publish",
+    "id": "publishRules",
+    "summary": "Publicar regras e invalidar avaliações atuais",
+    "body": "RulesPublishRequest",
+    "response": "RulesetResponse",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/rulesets/{ruleset_id}/history",
+    "id": "historyRules",
+    "summary": "Consultar histórico das regras",
+    "body": null,
+    "response": "AuditEventListResponse",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/ranking",
+    "id": "getRanking",
+    "summary": "Consultar ranking somente das empresas dentro do ICP",
+    "body": null,
+    "response": "RankingResponse",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/ranking.csv",
+    "id": "exportRanking",
+    "summary": "Exportar ranking congelado em CSV",
+    "body": null,
+    "response": null,
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/datasets/{dataset_id}/imports",
+    "id": "previewImport",
+    "summary": "Validar arquivo e gerar prévia; ainda não altera dados",
+    "body": "ImportUpload",
+    "response": "ImportPreviewResponse",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/imports/{import_id}",
+    "id": "getImport",
+    "summary": "Consultar prévia ou importação",
+    "body": null,
+    "response": "ImportPreviewResponse",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/imports/{import_id}/issues",
+    "id": "getImportIssues",
+    "summary": "Paginar todos os erros e avisos",
+    "body": null,
+    "response": "ImportIssueListResponse",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/datasets/{dataset_id}/imports/{import_id}/commit",
+    "id": "commitImport",
+    "summary": "Confirmar importação atomicamente",
+    "body": "ImportCommitRequest",
+    "response": "ImportCommitResultResponse",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/datasets/{dataset_id}/analysis-jobs",
+    "id": "createAnalysisJob",
+    "summary": "Solicitar interpretação de sinais da planilha",
+    "body": "JobCreate",
+    "response": "JobResponse",
+    "status": 202
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/analysis-jobs/{job_id}",
+    "id": "getAnalysisJob",
+    "summary": "Consultar progresso da análise",
+    "body": null,
+    "response": "JobResponse",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/datasets/{dataset_id}/analysis-jobs/{job_id}/retry",
+    "id": "retryAnalysisJob",
+    "summary": "Reprocessar somente contas que falharam",
+    "body": "JobRetryRequest",
+    "response": "JobResponse",
+    "status": 202
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/suggestions",
+    "id": "listSuggestions",
+    "summary": "Consultar sugestões e evidências",
+    "body": null,
+    "response": "SuggestionListResponse",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/datasets/{dataset_id}/suggestions/{suggestion_id}/decision",
+    "id": "decideSuggestion",
+    "summary": "Aceitar, rejeitar ou adiar sugestão",
+    "body": "SuggestionDecisionRequest",
+    "response": "SuggestionDecisionResultResponse",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/datasets/{dataset_id}/review-sessions",
+    "id": "startReview",
+    "summary": "Iniciar cronometragem de validação",
+    "body": "ReviewSessionCreate",
+    "response": "ReviewSessionResponse",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/review-sessions",
+    "id": "listReviews",
+    "summary": "Consultar sessões de validação",
+    "body": null,
+    "response": "ReviewSessionListResponse",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/datasets/{dataset_id}/review-sessions/{session_id}/events",
+    "id": "recordReviewEvent",
+    "summary": "Pausar, retomar, concluir ou abandonar validação",
+    "body": "ReviewSessionEventRequest",
+    "response": "ReviewSessionResponse",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/metrics",
+    "id": "getMetrics",
+    "summary": "Consultar medidas simples de validação",
+    "body": null,
+    "response": "MetricsResponse",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/datasets/{dataset_id}/metrics.csv",
+    "id": "exportMetrics",
+    "summary": "Exportar sessões e decisões para experimento",
+    "body": null,
+    "response": null,
+    "status": 200
+  }
+]

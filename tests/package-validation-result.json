@@ -1,0 +1,19 @@
+{
+  "checks": {
+    "json_files": 33,
+    "assertions": 2041,
+    "references": 602,
+    "schemas": 94,
+    "validated_instances": 809,
+    "inline_examples": 11,
+    "operations": 53,
+    "response_fixtures": 22,
+    "seed_records": 597,
+    "golden_profiles": 120,
+    "csv_templates": 7,
+    "local_links": 21
+  },
+  "independent_openapi_validator": "NOT RUN: optional openapi-spec-validator is not installed",
+  "errors": [],
+  "ok": true
+}

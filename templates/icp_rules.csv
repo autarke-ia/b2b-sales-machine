@@ -1,0 +1,10 @@
+﻿criterion_id,weight,required
+size,20,false
+hr,14,false
+benefits,12,false
+growth,10,false
+employer_branding,10,false
+geography,10,false
+region,8,false
+retention,8,false
+renewal,8,false

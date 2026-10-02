@@ -1,0 +1,25 @@
+{
+  "data": {
+    "id": "9495f4fc-6328-5a16-aa49-dc90271d6ffa",
+    "dataset_id": "b98e393e-c607-51da-8840-b52becd582b6",
+    "version": 1,
+    "created_at": "2026-10-01T23:00:00Z",
+    "created_by": "3ae34d02-69bc-5ec2-ba0a-c4122d3bb5c9",
+    "updated_at": "2026-10-01T23:00:00Z",
+    "updated_by": "3ae34d02-69bc-5ec2-ba0a-c4122d3bb5c9",
+    "archived_at": null,
+    "external_id": "EXAMPLE-SIGNAL-001",
+    "company_id": "ec78cacb-9e61-5a93-aeb5-8f2a63180639",
+    "signal_type": "Expansão",
+    "evidence_text": "A empresa anunciou expansão e contratação de novas equipes.",
+    "strength": "high",
+    "observed_on": "2026-09-15",
+    "source_name": "Notícia pública",
+    "source_url": "https://fonte-ficticia.exemplo/emp-0001/1",
+    "source_allowed": true,
+    "is_synthetic": true
+  },
+  "meta": {
+    "request_id": "e3350985-42c3-5400-9ed3-d18faf5a7f63"
+  }
+}

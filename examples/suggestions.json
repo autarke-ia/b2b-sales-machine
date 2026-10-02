@@ -1,0 +1,41 @@
+{
+  "data": [
+    {
+      "id": "75104699-0ea0-566f-ad2c-8c248f324fbd",
+      "dataset_id": "b98e393e-c607-51da-8840-b52becd582b6",
+      "company_id": "ec78cacb-9e61-5a93-aeb5-8f2a63180639",
+      "job_id": "f8edcb7b-7cbc-51b9-8ba7-e6ace4b2fad3",
+      "version": 1,
+      "field": "growth",
+      "base_company_version": 1,
+      "base_value": "high",
+      "proposed_value": "high",
+      "relation": "confirmation",
+      "confidence": "medium",
+      "rationale": "O texto descreve expansão e contratação. O mapeamento para a categoria precisa de revisão humana.",
+      "evidence": [
+        {
+          "signal_id": "9495f4fc-6328-5a16-aa49-dc90271d6ffa",
+          "signal_version": 1,
+          "quote": "A empresa anunciou expansão e contratação de novas equipes.",
+          "source_row": null
+        }
+      ],
+      "status": "pending",
+      "can_accept": true,
+      "blocked_reason": null,
+      "created_at": "2026-10-01T23:00:00Z",
+      "decided_at": null,
+      "decided_by": null
+    }
+  ],
+  "meta": {
+    "request_id": "e3350985-42c3-5400-9ed3-d18faf5a7f63",
+    "pagination": {
+      "page": 1,
+      "page_size": 25,
+      "total": 1,
+      "total_pages": 1
+    }
+  }
+}

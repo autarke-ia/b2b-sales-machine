@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VERSION_CONFLICT",
+    "message": "O registro mudou. Atualize os dados antes de salvar.",
+    "field_errors": [],
+    "details": {
+      "expected_version": 1,
+      "current_version": 2
+    }
+  },
+  "request_id": "e3350985-42c3-5400-9ed3-d18faf5a7f63"
+}

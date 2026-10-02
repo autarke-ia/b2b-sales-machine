@@ -1,0 +1,18 @@
+{
+  "data": [],
+  "meta": {
+    "request_id": "e3350985-42c3-5400-9ed3-d18faf5a7f63",
+    "pagination": {
+      "page": 1,
+      "page_size": 25,
+      "total": 0,
+      "total_pages": 0
+    },
+    "snapshot_id": "30551d19-b692-47b2-928e-b41be8148f30",
+    "dataset_revision": 1,
+    "ruleset_id": "f12f4320-a14f-51cd-ae0c-61ccb32d0352",
+    "as_of": "2026-09-30",
+    "current_dataset_revision": 1,
+    "is_stale": false
+  }
+}

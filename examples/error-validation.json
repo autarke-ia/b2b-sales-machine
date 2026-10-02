@@ -1,0 +1,14 @@
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Há campos inválidos.",
+    "field_errors": [
+      {
+        "path": "changes.employees",
+        "message": "Informe inteiro não negativo ou null."
+      }
+    ],
+    "details": {}
+  },
+  "request_id": "e3350985-42c3-5400-9ed3-d18faf5a7f63"
+}

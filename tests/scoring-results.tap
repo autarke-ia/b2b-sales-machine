@@ -1,0 +1,322 @@
+TAP version 13
+# Subtest: Full profile scores 100 in both independent stages
+ok 1 - Full profile scores 100 in both independent stages
+  ---
+  duration_ms: 5.92641
+  type: 'test'
+  ...
+# Subtest: ICP benefits change gate but do not get added to priority
+ok 2 - ICP benefits change gate but do not get added to priority
+  ---
+  duration_ms: 5.095799
+  type: 'test'
+  ...
+# Subtest: 79 employees fails D01
+ok 3 - 79 employees fails D01
+  ---
+  duration_ms: 0.421693
+  type: 'test'
+  ...
+# Subtest: 80 employees does not fail D01 but loses size points
+ok 4 - 80 employees does not fail D01 but loses size points
+  ---
+  duration_ms: 0.254184
+  type: 'test'
+  ...
+# Subtest: 199 versus 200 employee boundary is inclusive
+ok 5 - 199 versus 200 employee boundary is inclusive
+  ---
+  duration_ms: 2.600575
+  type: 'test'
+  ...
+# Subtest: 5000 versus 5001 upper boundary is inclusive
+ok 6 - 5000 versus 5001 upper boundary is inclusive
+  ---
+  duration_ms: 0.400941
+  type: 'test'
+  ...
+# Subtest: Missing employees leaves hard requirement pending
+ok 7 - Missing employees leaves hard requirement pending
+  ---
+  duration_ms: 1.530243
+  type: 'test'
+  ...
+# Subtest: Unknown Brazil operation blocks a definitive approval
+ok 8 - Unknown Brazil operation blocks a definitive approval
+  ---
+  duration_ms: 0.380037
+  type: 'test'
+  ...
+# Subtest: No Brazil operation rejects the company
+ok 9 - No Brazil operation rejects the company
+  ---
+  duration_ms: 3.283662
+  type: 'test'
+  ...
+# Subtest: Inactive company rejects independently of score
+ok 10 - Inactive company rejects independently of score
+  ---
+  duration_ms: 1.375308
+  type: 'test'
+  ...
+# Subtest: Unknown operating status remains pending
+ok 11 - Unknown operating status remains pending
+  ---
+  duration_ms: 0.838801
+  type: 'test'
+  ...
+# Subtest: Missing benefits does not block a mathematically safe gate
+ok 12 - Missing benefits does not block a mathematically safe gate
+  ---
+  duration_ms: 0.845948
+  type: 'test'
+  ...
+# Subtest: A known false conjunct resolves benefits to zero
+ok 13 - A known false conjunct resolves benefits to zero
+  ---
+  duration_ms: 0.344915
+  type: 'test'
+  ...
+# Subtest: Uncertainty straddling cutoff produces pending
+ok 14 - Uncertainty straddling cutoff produces pending
+  ---
+  duration_ms: 0.22333
+  type: 'test'
+  ...
+# Subtest: Maximum below cutoff rejects without imputing data
+ok 15 - Maximum below cutoff rejects without imputing data
+  ---
+  duration_ms: 0.134807
+  type: 'test'
+  ...
+# Subtest: Exactly 60 known points qualifies
+ok 16 - Exactly 60 known points qualifies
+  ---
+  duration_ms: 0.147742
+  type: 'test'
+  ...
+# Subtest: Upper bound exactly 60 and lower 48 stays pending
+ok 17 - Upper bound exactly 60 and lower 48 stays pending
+  ---
+  duration_ms: 0.156905
+  type: 'test'
+  ...
+# Subtest: Known weights are not renormalized
+ok 18 - Known weights are not renormalized
+  ---
+  duration_ms: 0.112488
+  type: 'test'
+  ...
+# Subtest: Private/blocked contact affects S09, not company eligibility
+ok 19 - Private/blocked contact affects S09, not company eligibility
+  ---
+  duration_ms: 0.125317
+  type: 'test'
+  ...
+# Subtest: A channel without a named person does not identify a decision maker
+ok 20 - A channel without a named person does not identify a decision maker
+  ---
+  duration_ms: 2.46058
+  type: 'test'
+  ...
+# Subtest: Signal exactly 90 days old qualifies
+ok 21 - Signal exactly 90 days old qualifies
+  ---
+  duration_ms: 0.26406
+  type: 'test'
+  ...
+# Subtest: Signal 91 days old does not qualify
+ok 22 - Signal 91 days old does not qualify
+  ---
+  duration_ms: 0.137893
+  type: 'test'
+  ...
+# Subtest: Future signal does not qualify
+ok 23 - Future signal does not qualify
+  ---
+  duration_ms: 0.220232
+  type: 'test'
+  ...
+# Subtest: Undated signal does not qualify for recency
+ok 24 - Undated signal does not qualify for recency
+  ---
+  duration_ms: 2.995904
+  type: 'test'
+  ...
+# Subtest: Medium-strength signal does not qualify as strong
+ok 25 - Medium-strength signal does not qualify as strong
+  ---
+  duration_ms: 0.15819
+  type: 'test'
+  ...
+# Subtest: Several qualifying signals do not stack S08 points
+ok 26 - Several qualifying signals do not stack S08 points
+  ---
+  duration_ms: 0.197336
+  type: 'test'
+  ...
+# Subtest: Disallowed signal is not used
+ok 27 - Disallowed signal is not used
+  ---
+  duration_ms: 0.12786
+  type: 'test'
+  ...
+# Subtest: Archived signal is not used
+ok 28 - Archived signal is not used
+  ---
+  duration_ms: 0.101231
+  type: 'test'
+  ...
+# Subtest: History absent makes S10 unknown rather than known zero
+ok 29 - History absent makes S10 unknown rather than known zero
+  ---
+  duration_ms: 0.130092
+  type: 'test'
+  ...
+# Subtest: Company own outcomes cannot become S10 evidence
+ok 30 - Company own outcomes cannot become S10 evidence
+  ---
+  duration_ms: 0.132403
+  type: 'test'
+  ...
+# Subtest: Future historical win cannot count
+ok 31 - Future historical win cannot count
+  ---
+  duration_ms: 0.105025
+  type: 'test'
+  ...
+# Subtest: Historical row without closing date cannot count
+ok 32 - Historical row without closing date cannot count
+  ---
+  duration_ms: 0.091317
+  type: 'test'
+  ...
+# Subtest: Known dated loss is known zero, not missing history
+ok 33 - Known dated loss is known zero, not missing history
+  ---
+  duration_ms: 0.171787
+  type: 'test'
+  ...
+# Subtest: D05 confirmed subtracts configured penalty
+ok 34 - D05 confirmed subtracts configured penalty
+  ---
+  duration_ms: 0.113569
+  type: 'test'
+  ...
+# Subtest: D05 unknown is not silently applied
+ok 35 - D05 unknown is not silently applied
+  ---
+  duration_ms: 0.103097
+  type: 'test'
+  ...
+# Subtest: Over-12 renewal is not evidence of a 24-plus renewal
+ok 36 - Over-12 renewal is not evidence of a 24-plus renewal
+  ---
+  duration_ms: 0.097265
+  type: 'test'
+  ...
+# Subtest: Penalty result is clamped at zero
+ok 37 - Penalty result is clamped at zero
+  ---
+  duration_ms: 0.108048
+  type: 'test'
+  ...
+# Subtest: Human review incomplete marks score preliminary
+ok 38 - Human review incomplete marks score preliminary
+  ---
+  duration_ms: 0.092839
+  type: 'test'
+  ...
+# Subtest: Pending actionable suggestions mark score preliminary
+ok 39 - Pending actionable suggestions mark score preliminary
+  ---
+  duration_ms: 0.091352
+  type: 'test'
+  ...
+# Subtest: Fully known and reviewed result is marked reviewed
+ok 40 - Fully known and reviewed result is marked reviewed
+  ---
+  duration_ms: 4.220051
+  type: 'test'
+  ...
+# Subtest: Archived company has no priority
+ok 41 - Archived company has no priority
+  ---
+  duration_ms: 0.256702
+  type: 'test'
+  ...
+# Subtest: Required partial criterion fails eligibility
+ok 42 - Required partial criterion fails eligibility
+  ---
+  duration_ms: 0.138347
+  type: 'test'
+  ...
+# Subtest: Required unknown criterion stays pending
+ok 43 - Required unknown criterion stays pending
+  ---
+  duration_ms: 0.104064
+  type: 'test'
+  ...
+# Subtest: Disabling D01 does not invent size points
+ok 44 - Disabling D01 does not invent size points
+  ---
+  duration_ms: 0.122133
+  type: 'test'
+  ...
+# Subtest: Weights not summing to 100 fail early
+ok 45 - Weights not summing to 100 fail early
+  ---
+  duration_ms: 0.468876
+  type: 'test'
+  ...
+# Subtest: Invalid employee range fails early
+ok 46 - Invalid employee range fails early
+  ---
+  duration_ms: 0.196569
+  type: 'test'
+  ...
+# Subtest: D03 cannot be disabled
+ok 47 - D03 cannot be disabled
+  ---
+  duration_ms: 0.5178
+  type: 'test'
+  ...
+# Subtest: Ranking excludes out and resolves equal scores by external ID
+ok 48 - Ranking excludes out and resolves equal scores by external ID
+  ---
+  duration_ms: 1.287202
+  type: 'test'
+  ...
+# Subtest: Raw precision wins before display rounding
+ok 49 - Raw precision wins before display rounding
+  ---
+  duration_ms: 0.161711
+  type: 'test'
+  ...
+# Subtest: Original normalized case matches versioned golden results
+ok 50 - Original normalized case matches versioned golden results
+  ---
+  duration_ms: 47.705421
+  type: 'test'
+  ...
+# Subtest: Deterministic property checks over 500 profiles
+ok 51 - Deterministic property checks over 500 profiles
+  ---
+  duration_ms: 63.692891
+  type: 'test'
+  ...
+# Subtest: Half-up presentation rounds a 10.075 product to 10.08
+ok 52 - Half-up presentation rounds a 10.075 product to 10.08
+  ---
+  duration_ms: 5.181831
+  type: 'test'
+  ...
+1..52
+# tests 52
+# suites 0
+# pass 52
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 391.510152

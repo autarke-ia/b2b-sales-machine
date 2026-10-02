@@ -1,0 +1,20 @@
+# dependências e builds
+node_modules/
+.next/
+out/
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# ambiente e segredos — NUNCA versionar
+.env
+.env.*
+!.env.example
+
+# testes e ferramentas
+playwright-report/
+test-results/
+coverage/
+
+# sistema
+.DS_Store
+Thumbs.db

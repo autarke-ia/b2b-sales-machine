@@ -1,0 +1,604 @@
+{
+  "data": {
+    "schema_version": "1.0.0",
+    "entities": {
+      "company": [
+        {
+          "key": "external_id",
+          "label": "external_id",
+          "type": "string",
+          "nullable": false,
+          "required_on_create": true,
+          "editable": false,
+          "allowed_values": [],
+          "description": "Identificador imutável."
+        },
+        {
+          "key": "name",
+          "label": "name",
+          "type": "string",
+          "nullable": false,
+          "required_on_create": true,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "domain",
+          "label": "domain",
+          "type": "string",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "segment",
+          "label": "segment",
+          "type": "string",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "employees",
+          "label": "Colaboradores",
+          "type": "integer",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "uf",
+          "label": "UF",
+          "type": "enum",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [
+            "AC",
+            "AL",
+            "AP",
+            "AM",
+            "BA",
+            "CE",
+            "DF",
+            "ES",
+            "GO",
+            "MA",
+            "MT",
+            "MS",
+            "MG",
+            "PA",
+            "PB",
+            "PR",
+            "PE",
+            "PI",
+            "RJ",
+            "RN",
+            "RS",
+            "RO",
+            "RR",
+            "SC",
+            "SP",
+            "SE",
+            "TO"
+          ],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "operates_in_brazil",
+          "label": "Opera no Brasil",
+          "type": "boolean",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "hr_structured",
+          "label": "RH estruturado",
+          "type": "boolean",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "has_benefits",
+          "label": "Possui benefícios",
+          "type": "boolean",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "seeks_benefit_differentiation",
+          "label": "Busca diferenciação em benefícios",
+          "type": "boolean",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "multi_region",
+          "label": "Multi-região",
+          "type": "boolean",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "growth",
+          "label": "Sinal crescimento",
+          "type": "enum",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "employer_branding",
+          "label": "Employer branding",
+          "type": "enum",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "retention_pain",
+          "label": "Dor retenção",
+          "type": "enum",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "renewal_window",
+          "label": "Renovação provável",
+          "type": "enum",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [
+            "m0_3",
+            "m4_6",
+            "m7_12",
+            "over_12"
+          ],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "renewed_24_plus",
+          "label": "Contrato recém-renovado por 24+ meses",
+          "type": "boolean",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "operating_status",
+          "label": "operating_status",
+          "type": "enum",
+          "nullable": false,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [
+            "active",
+            "inactive",
+            "unknown"
+          ],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "source_label",
+          "label": "source_label",
+          "type": "string",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "is_synthetic",
+          "label": "is_synthetic",
+          "type": "boolean",
+          "nullable": false,
+          "required_on_create": false,
+          "editable": false,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        }
+      ],
+      "signal": [
+        {
+          "key": "external_id",
+          "label": "external_id",
+          "type": "string",
+          "nullable": false,
+          "required_on_create": true,
+          "editable": false,
+          "allowed_values": [],
+          "description": "Identificador imutável."
+        },
+        {
+          "key": "company_id",
+          "label": "company_id",
+          "type": "string",
+          "nullable": false,
+          "required_on_create": true,
+          "editable": false,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "signal_type",
+          "label": "signal_type",
+          "type": "string",
+          "nullable": false,
+          "required_on_create": true,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "evidence_text",
+          "label": "evidence_text",
+          "type": "string",
+          "nullable": false,
+          "required_on_create": true,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "strength",
+          "label": "strength",
+          "type": "enum",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "observed_on",
+          "label": "observed_on",
+          "type": "date",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "source_name",
+          "label": "source_name",
+          "type": "string",
+          "nullable": false,
+          "required_on_create": true,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "source_url",
+          "label": "source_url",
+          "type": "string",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "source_allowed",
+          "label": "source_allowed",
+          "type": "boolean",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "is_synthetic",
+          "label": "is_synthetic",
+          "type": "boolean",
+          "nullable": false,
+          "required_on_create": false,
+          "editable": false,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        }
+      ],
+      "contact": [
+        {
+          "key": "external_id",
+          "label": "external_id",
+          "type": "string",
+          "nullable": false,
+          "required_on_create": true,
+          "editable": false,
+          "allowed_values": [],
+          "description": "Identificador imutável."
+        },
+        {
+          "key": "company_id",
+          "label": "company_id",
+          "type": "string",
+          "nullable": false,
+          "required_on_create": true,
+          "editable": false,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "full_name",
+          "label": "full_name",
+          "type": "string",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "job_title",
+          "label": "job_title",
+          "type": "string",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "channel_type",
+          "label": "channel_type",
+          "type": "enum",
+          "nullable": false,
+          "required_on_create": true,
+          "editable": true,
+          "allowed_values": [
+            "institutional_page",
+            "generic_corporate_email",
+            "professional_profile",
+            "corporate_phone",
+            "company_contact_page",
+            "other_public"
+          ],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "channel_value",
+          "label": "channel_value",
+          "type": "string",
+          "nullable": false,
+          "required_on_create": true,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "origin",
+          "label": "origin",
+          "type": "string",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "is_professional_public",
+          "label": "is_professional_public",
+          "type": "boolean",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "source_allowed",
+          "label": "source_allowed",
+          "type": "boolean",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "decision_maker_identified",
+          "label": "decision_maker_identified",
+          "type": "boolean",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "is_synthetic",
+          "label": "is_synthetic",
+          "type": "boolean",
+          "nullable": false,
+          "required_on_create": false,
+          "editable": false,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        }
+      ],
+      "opportunity": [
+        {
+          "key": "external_id",
+          "label": "external_id",
+          "type": "string",
+          "nullable": false,
+          "required_on_create": true,
+          "editable": false,
+          "allowed_values": [],
+          "description": "Identificador imutável."
+        },
+        {
+          "key": "company_id",
+          "label": "company_id",
+          "type": "string",
+          "nullable": false,
+          "required_on_create": true,
+          "editable": false,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "result",
+          "label": "result",
+          "type": "enum",
+          "nullable": false,
+          "required_on_create": true,
+          "editable": true,
+          "allowed_values": [
+            "won",
+            "lost",
+            "negotiating"
+          ],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "closed_on",
+          "label": "closed_on",
+          "type": "date",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "segment_at_close",
+          "label": "segment_at_close",
+          "type": "string",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "cycle_days",
+          "label": "cycle_days",
+          "type": "integer",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "estimated_ticket_cents",
+          "label": "estimated_ticket_cents",
+          "type": "integer",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "reason",
+          "label": "reason",
+          "type": "string",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "sponsor",
+          "label": "sponsor",
+          "type": "string",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "origin",
+          "label": "origin",
+          "type": "string",
+          "nullable": true,
+          "required_on_create": false,
+          "editable": true,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        },
+        {
+          "key": "is_synthetic",
+          "label": "is_synthetic",
+          "type": "boolean",
+          "nullable": false,
+          "required_on_create": false,
+          "editable": false,
+          "allowed_values": [],
+          "description": "Ver 01_MODELO_DE_DADOS_E_IMPORTACAO.md."
+        }
+      ]
+    },
+    "import_targets": [
+      "workbook",
+      "companies",
+      "signals",
+      "contacts",
+      "opportunities",
+      "icp_rules",
+      "priority_rules",
+      "disqualifiers"
+    ],
+    "max_file_bytes": 10485760,
+    "max_import_rows": 10000
+  },
+  "meta": {
+    "request_id": "e3350985-42c3-5400-9ed3-d18faf5a7f63"
+  }
+}

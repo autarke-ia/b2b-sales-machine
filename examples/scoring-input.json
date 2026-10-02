@@ -1,0 +1,176 @@
+{
+  "company": {
+    "id": "ec78cacb-9e61-5a93-aeb5-8f2a63180639",
+    "dataset_id": "b98e393e-c607-51da-8840-b52becd582b6",
+    "version": 1,
+    "created_at": "2026-10-01T23:00:00Z",
+    "created_by": "3ae34d02-69bc-5ec2-ba0a-c4122d3bb5c9",
+    "updated_at": "2026-10-01T23:00:00Z",
+    "updated_by": "3ae34d02-69bc-5ec2-ba0a-c4122d3bb5c9",
+    "archived_at": null,
+    "external_id": "EXAMPLE-001",
+    "name": "Empresa de demonstração",
+    "domain": "empresa001.com.br",
+    "segment": "Tecnologia",
+    "employees": 650,
+    "uf": "SP",
+    "hr_structured": true,
+    "multi_region": true,
+    "growth": "high",
+    "employer_branding": "medium",
+    "retention_pain": "high",
+    "renewal_window": "m0_3",
+    "source_label": "Site + LinkedIn",
+    "operating_status": "active",
+    "input_revision": 1,
+    "operates_in_brazil": true,
+    "has_benefits": true,
+    "seeks_benefit_differentiation": true,
+    "renewed_24_plus": false,
+    "is_synthetic": true
+  },
+  "signals": [
+    {
+      "id": "9495f4fc-6328-5a16-aa49-dc90271d6ffa",
+      "dataset_id": "b98e393e-c607-51da-8840-b52becd582b6",
+      "version": 1,
+      "created_at": "2026-10-01T23:00:00Z",
+      "created_by": "3ae34d02-69bc-5ec2-ba0a-c4122d3bb5c9",
+      "updated_at": "2026-10-01T23:00:00Z",
+      "updated_by": "3ae34d02-69bc-5ec2-ba0a-c4122d3bb5c9",
+      "archived_at": null,
+      "external_id": "EXAMPLE-SIGNAL-001",
+      "company_id": "ec78cacb-9e61-5a93-aeb5-8f2a63180639",
+      "signal_type": "Expansão",
+      "evidence_text": "A empresa anunciou expansão e contratação de novas equipes.",
+      "strength": "high",
+      "observed_on": "2026-09-15",
+      "source_name": "Notícia pública",
+      "source_url": "https://fonte-ficticia.exemplo/emp-0001/1",
+      "source_allowed": true,
+      "is_synthetic": true
+    }
+  ],
+  "contacts": [
+    {
+      "id": "c1f62efb-4832-5393-ba4a-00c11c48814b",
+      "dataset_id": "b98e393e-c607-51da-8840-b52becd582b6",
+      "version": 1,
+      "created_at": "2026-10-01T23:00:00Z",
+      "created_by": "3ae34d02-69bc-5ec2-ba0a-c4122d3bb5c9",
+      "updated_at": "2026-10-01T23:00:00Z",
+      "updated_by": "3ae34d02-69bc-5ec2-ba0a-c4122d3bb5c9",
+      "archived_at": null,
+      "external_id": "EXAMPLE-CONTACT-001",
+      "company_id": "ec78cacb-9e61-5a93-aeb5-8f2a63180639",
+      "full_name": "Contato fictício",
+      "job_title": "Diretora de RH",
+      "channel_type": "institutional_page",
+      "channel_value": "empresa001.com.br/lideranca",
+      "origin": "Fonte pública/permitida",
+      "is_professional_public": true,
+      "source_allowed": true,
+      "decision_maker_identified": true,
+      "is_synthetic": true
+    }
+  ],
+  "opportunities": [
+    {
+      "id": "132aa1d6-6734-5d6a-af7d-ccb009618b58",
+      "dataset_id": "b98e393e-c607-51da-8840-b52becd582b6",
+      "version": 1,
+      "created_at": "2026-10-01T23:00:00Z",
+      "created_by": "3ae34d02-69bc-5ec2-ba0a-c4122d3bb5c9",
+      "updated_at": "2026-10-01T23:00:00Z",
+      "updated_by": "3ae34d02-69bc-5ec2-ba0a-c4122d3bb5c9",
+      "archived_at": null,
+      "external_id": "OPP-0062",
+      "company_id": "63605a5f-ad82-5441-aa39-0a77ff531689",
+      "result": "won",
+      "closed_on": "2026-08-01",
+      "segment_at_close": "Tecnologia",
+      "cycle_days": 35,
+      "estimated_ticket_cents": 22000000,
+      "reason": "Aguardando budget",
+      "sponsor": "Diretor de RH",
+      "origin": "Indicação",
+      "is_synthetic": true
+    }
+  ],
+  "rules": {
+    "schema_version": "1.0.0",
+    "shared": {
+      "employee_min": 200,
+      "employee_max": 5000,
+      "medium_factor": 0.5,
+      "priority_ufs": [
+        "SP",
+        "RJ",
+        "MG",
+        "ES",
+        "PR",
+        "SC",
+        "RS"
+      ],
+      "other_region_factor": 0.5,
+      "accepted_renewal_windows": [
+        "m0_3",
+        "m4_6"
+      ]
+    },
+    "icp": {
+      "threshold": 60,
+      "required_criteria": [],
+      "weights": {
+        "size": 20,
+        "hr": 14,
+        "benefits": 12,
+        "growth": 10,
+        "employer_branding": 10,
+        "geography": 10,
+        "region": 8,
+        "retention": 8,
+        "renewal": 8
+      }
+    },
+    "priority": {
+      "weights": {
+        "S01": 20,
+        "S02": 14,
+        "S03": 10,
+        "S04": 10,
+        "S05": 10,
+        "S06": 8,
+        "S07": 8,
+        "S08": 10,
+        "S09": 5,
+        "S10": 5
+      },
+      "recent_signal_days": 90,
+      "high_threshold": 70,
+      "medium_threshold": 40
+    },
+    "disqualifiers": {
+      "D01": {
+        "enabled": true,
+        "min_employees": 80
+      },
+      "D02": {
+        "enabled": true
+      },
+      "D03": {
+        "professional_public_only": true
+      },
+      "D04": {
+        "enabled": true
+      },
+      "D05": {
+        "enabled": true,
+        "penalty_points": 20
+      }
+    }
+  },
+  "as_of": "2026-09-30",
+  "review_completed": false,
+  "pending_suggestions": 1
+}

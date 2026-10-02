@@ -1,0 +1,312 @@
+{
+  "data": {
+    "company": {
+      "id": "ec78cacb-9e61-5a93-aeb5-8f2a63180639",
+      "dataset_id": "b98e393e-c607-51da-8840-b52becd582b6",
+      "version": 1,
+      "created_at": "2026-10-01T23:00:00Z",
+      "created_by": "3ae34d02-69bc-5ec2-ba0a-c4122d3bb5c9",
+      "updated_at": "2026-10-01T23:00:00Z",
+      "updated_by": "3ae34d02-69bc-5ec2-ba0a-c4122d3bb5c9",
+      "archived_at": null,
+      "external_id": "EXAMPLE-001",
+      "name": "Empresa de demonstração",
+      "domain": "empresa001.com.br",
+      "segment": "Tecnologia",
+      "employees": 650,
+      "uf": "SP",
+      "hr_structured": true,
+      "multi_region": true,
+      "growth": "high",
+      "employer_branding": "medium",
+      "retention_pain": "high",
+      "renewal_window": "m0_3",
+      "source_label": "Site + LinkedIn",
+      "operating_status": "active",
+      "input_revision": 1,
+      "operates_in_brazil": true,
+      "has_benefits": true,
+      "seeks_benefit_differentiation": true,
+      "renewed_24_plus": false,
+      "is_synthetic": true
+    },
+    "assessment": {
+      "id": "ecc3d939-2d62-4b53-a024-1ba67b8b1ab1",
+      "company_id": "ec78cacb-9e61-5a93-aeb5-8f2a63180639",
+      "company_version": 1,
+      "input_revision": 1,
+      "dataset_revision": 1,
+      "ruleset_id": "f12f4320-a14f-51cd-ae0c-61ccb32d0352",
+      "as_of": "2026-09-30",
+      "calculated_at": "2026-10-01T23:00:00Z",
+      "gate": {
+        "state": "in",
+        "in_icp": true,
+        "score_min": 95,
+        "score_max": 95,
+        "threshold": 60,
+        "hard_failures": [],
+        "unknown_requirements": [],
+        "criteria": [
+          {
+            "id": "size",
+            "factor": 1,
+            "weight": 20,
+            "points": 20,
+            "missing": false,
+            "reason_code": "MATCH",
+            "input_fields": [
+              "employees"
+            ],
+            "evidence_ids": []
+          },
+          {
+            "id": "hr",
+            "factor": 1,
+            "weight": 14,
+            "points": 14,
+            "missing": false,
+            "reason_code": "MATCH",
+            "input_fields": [
+              "hr_structured"
+            ],
+            "evidence_ids": []
+          },
+          {
+            "id": "benefits",
+            "factor": 1,
+            "weight": 12,
+            "points": 12,
+            "missing": false,
+            "reason_code": "MATCH",
+            "input_fields": [
+              "has_benefits",
+              "seeks_benefit_differentiation"
+            ],
+            "evidence_ids": []
+          },
+          {
+            "id": "growth",
+            "factor": 1,
+            "weight": 10,
+            "points": 10,
+            "missing": false,
+            "reason_code": "MATCH",
+            "input_fields": [
+              "growth"
+            ],
+            "evidence_ids": []
+          },
+          {
+            "id": "employer_branding",
+            "factor": 0.5,
+            "weight": 10,
+            "points": 5,
+            "missing": false,
+            "reason_code": "PARTIAL_MATCH",
+            "input_fields": [
+              "employer_branding"
+            ],
+            "evidence_ids": []
+          },
+          {
+            "id": "geography",
+            "factor": 1,
+            "weight": 10,
+            "points": 10,
+            "missing": false,
+            "reason_code": "MATCH",
+            "input_fields": [
+              "multi_region"
+            ],
+            "evidence_ids": []
+          },
+          {
+            "id": "region",
+            "factor": 1,
+            "weight": 8,
+            "points": 8,
+            "missing": false,
+            "reason_code": "MATCH",
+            "input_fields": [
+              "uf"
+            ],
+            "evidence_ids": []
+          },
+          {
+            "id": "retention",
+            "factor": 1,
+            "weight": 8,
+            "points": 8,
+            "missing": false,
+            "reason_code": "MATCH",
+            "input_fields": [
+              "retention_pain"
+            ],
+            "evidence_ids": []
+          },
+          {
+            "id": "renewal",
+            "factor": 1,
+            "weight": 8,
+            "points": 8,
+            "missing": false,
+            "reason_code": "MATCH",
+            "input_fields": [
+              "renewal_window"
+            ],
+            "evidence_ids": []
+          }
+        ]
+      },
+      "priority": {
+        "score": 95,
+        "score_min": 95,
+        "score_max": 95,
+        "band": "high",
+        "status": "preliminary",
+        "criteria": [
+          {
+            "id": "S01",
+            "factor": 1,
+            "weight": 20,
+            "points": 20,
+            "missing": false,
+            "reason_code": "MATCH",
+            "input_fields": [
+              "employees"
+            ],
+            "evidence_ids": []
+          },
+          {
+            "id": "S02",
+            "factor": 1,
+            "weight": 14,
+            "points": 14,
+            "missing": false,
+            "reason_code": "MATCH",
+            "input_fields": [
+              "hr_structured"
+            ],
+            "evidence_ids": []
+          },
+          {
+            "id": "S03",
+            "factor": 1,
+            "weight": 10,
+            "points": 10,
+            "missing": false,
+            "reason_code": "MATCH",
+            "input_fields": [
+              "multi_region"
+            ],
+            "evidence_ids": []
+          },
+          {
+            "id": "S04",
+            "factor": 1,
+            "weight": 10,
+            "points": 10,
+            "missing": false,
+            "reason_code": "MATCH",
+            "input_fields": [
+              "growth"
+            ],
+            "evidence_ids": []
+          },
+          {
+            "id": "S05",
+            "factor": 0.5,
+            "weight": 10,
+            "points": 5,
+            "missing": false,
+            "reason_code": "PARTIAL_MATCH",
+            "input_fields": [
+              "employer_branding"
+            ],
+            "evidence_ids": []
+          },
+          {
+            "id": "S06",
+            "factor": 1,
+            "weight": 8,
+            "points": 8,
+            "missing": false,
+            "reason_code": "MATCH",
+            "input_fields": [
+              "retention_pain"
+            ],
+            "evidence_ids": []
+          },
+          {
+            "id": "S07",
+            "factor": 1,
+            "weight": 8,
+            "points": 8,
+            "missing": false,
+            "reason_code": "MATCH",
+            "input_fields": [
+              "renewal_window"
+            ],
+            "evidence_ids": []
+          },
+          {
+            "id": "S08",
+            "factor": 1,
+            "weight": 10,
+            "points": 10,
+            "missing": false,
+            "reason_code": "MATCH",
+            "input_fields": [
+              "signals"
+            ],
+            "evidence_ids": [
+              "9495f4fc-6328-5a16-aa49-dc90271d6ffa"
+            ]
+          },
+          {
+            "id": "S09",
+            "factor": 1,
+            "weight": 5,
+            "points": 5,
+            "missing": false,
+            "reason_code": "MATCH",
+            "input_fields": [
+              "contacts"
+            ],
+            "evidence_ids": [
+              "c1f62efb-4832-5393-ba4a-00c11c48814b"
+            ]
+          },
+          {
+            "id": "S10",
+            "factor": 1,
+            "weight": 5,
+            "points": 5,
+            "missing": false,
+            "reason_code": "MATCH",
+            "input_fields": [
+              "opportunities"
+            ],
+            "evidence_ids": [
+              "132aa1d6-6734-5d6a-af7d-ccb009618b58"
+            ]
+          }
+        ],
+        "applied_penalty": 0,
+        "possible_penalty": 0,
+        "known_weight": 100,
+        "warnings": [
+          "HUMAN_REVIEW_NOT_COMPLETED",
+          "PENDING_SUGGESTIONS"
+        ]
+      }
+    },
+    "pending_suggestions": 1,
+    "is_current_customer": false,
+    "review_completed_for_input_revision": null
+  },
+  "meta": {
+    "request_id": "e3350985-42c3-5400-9ed3-d18faf5a7f63"
+  }
+}

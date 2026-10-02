@@ -1,0 +1,36 @@
+{
+  "data": {
+    "id": "f8edcb7b-7cbc-51b9-8ba7-e6ace4b2fad3",
+    "dataset_id": "b98e393e-c607-51da-8840-b52becd582b6",
+    "state": "partial_failed",
+    "scope": "eligible_enrichment",
+    "requested_count": 3,
+    "processed_count": 1,
+    "failed_count": 1,
+    "skipped_count": 1,
+    "suggestion_count": 1,
+    "created_at": "2026-10-01T23:00:00Z",
+    "started_at": "2026-10-01T23:00:00Z",
+    "finished_at": "2026-10-01T23:02:00Z",
+    "created_by": "6225301c-e318-5cec-88a0-95aba64ecd68",
+    "model": null,
+    "prompt_version": "allya-extract-v1",
+    "errors": [
+      {
+        "company_id": "ec78cacb-9e61-5a93-aeb5-8f2a63180639",
+        "code": "AI_TIMEOUT",
+        "message": "A chamada expirou. Reprocessar apenas esta falha."
+      }
+    ],
+    "warnings": [
+      {
+        "company_id": "e70aacf5-3e8c-50de-bdcf-676bff5883a9",
+        "code": "SKIPPED_NOT_ELIGIBLE",
+        "message": "Exemplo de conta ignorada por estado incompatível."
+      }
+    ]
+  },
+  "meta": {
+    "request_id": "e3350985-42c3-5400-9ed3-d18faf5a7f63"
+  }
+}

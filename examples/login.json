@@ -1,0 +1,14 @@
+{
+  "data": {
+    "user": {
+      "id": "6225301c-e318-5cec-88a0-95aba64ecd68",
+      "name": "Marco (fixture)",
+      "email": "marco@example.invalid"
+    },
+    "csrf_token": "example-csrf-token-never-use-in-production-0001",
+    "expires_at": "2026-10-02T07:00:00Z"
+  },
+  "meta": {
+    "request_id": "e3350985-42c3-5400-9ed3-d18faf5a7f63"
+  }
+}
