@@ -327,7 +327,7 @@ model Ruleset {
   dataset_id      String         @db.Uuid
   status          RulesetStatus
   config          Json
-  base_ruleset_id String?
+  base_ruleset_id String?        @db.Uuid
   version         Int            @default(1)
   created_at      DateTime       @default(now()) @db.Timestamptz(6)
   created_by      String         @db.Uuid

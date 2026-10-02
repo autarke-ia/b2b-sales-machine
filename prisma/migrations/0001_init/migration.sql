@@ -222,7 +222,7 @@ CREATE TABLE "Ruleset" (
     "dataset_id" UUID NOT NULL,
     "status" "RulesetStatus" NOT NULL,
     "config" JSONB NOT NULL,
-    "base_ruleset_id" TEXT,
+    "base_ruleset_id" UUID,
     "version" INTEGER NOT NULL DEFAULT 1,
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "created_by" UUID NOT NULL,
