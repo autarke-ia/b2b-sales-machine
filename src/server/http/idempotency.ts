@@ -73,6 +73,11 @@ export async function runIdempotent(
     }
     throw conflict("IDEMPOTENCY_CONFLICT", "Ação com esta chave já está em processamento.", { key, state: existing.status });
   }
+  if (existing) {
+    // Expirada: remove para reprocessar — sem isto o UNIQUE transformaria o TTL
+    // em 409 eterno para a mesma chave.
+    await prisma.idempotencyRecord.delete({ where: { id: existing.id } }).catch(() => undefined);
+  }
 
   const record = await prisma.idempotencyRecord.create({
     data: {

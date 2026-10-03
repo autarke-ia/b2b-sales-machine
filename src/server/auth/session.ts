@@ -116,20 +116,6 @@ export interface AuthenticatedSession {
   user: User;
 }
 
-export async function sessionFromCookie(req: Request): Promise<AuthenticatedSession | null> {
-  const cookie = req.headers.get("cookie") ?? "";
-  const match = cookie.match(/(?:^|;\s*)allya_session=([^;]+)/);
-  if (!match) return null;
-  const row = await prisma.session.findUnique({
-    where: { token_hash: sha256Hex(match[1]!) },
-    include: { user: true },
-  });
-  if (!row || !row.user.active) return null;
-  if (row.revoked_at) return null;
-  if (row.expires_at.getTime() <= Date.now()) return null;
-  return { session: row, user: row.user };
-}
-
 /** Distinção de contrato (doc 03 §3): expirada = SESSION_EXPIRED; revogada/ausente = UNAUTHENTICATED. */
 export async function sessionFromCookieClassified(req: Request): Promise<
   { kind: "ok"; ctx: AuthenticatedSession } | { kind: "expired" | "none" }
