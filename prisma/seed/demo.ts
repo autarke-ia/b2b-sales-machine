@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { hash as argon2Hash } from "@node-rs/argon2";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 export const TECHNICAL_ACTOR_ID = "3ae34d02-69bc-5ec2-ba0a-c4122d3bb5c9";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -91,10 +91,22 @@ export async function seedDemo(prisma: PrismaClient): Promise<{ noop: boolean; c
       },
     });
 
+    // Campos @db.Date vêm do fixture como "YYYY-MM-DD" (date-only); o Prisma 6 exige
+    // DateTime ISO-8601 / Date. Coerção na carga — o fixture é insumo imutável (não é
+    // editado). Companies/contacts não têm campo @db.Date; só signals.observed_on e
+    // opportunities.closed_on precisam da conversão (default_as_of já é convertido acima).
+    const toDbDate = (v: unknown): Date | null => (typeof v === "string" && v !== "" ? new Date(v) : null);
+
     await tx.company.createMany({ data: demo.companies, skipDuplicates: true });
-    await tx.signal.createMany({ data: demo.signals, skipDuplicates: true });
+    await tx.signal.createMany({
+      data: (demo.signals as Prisma.SignalCreateManyInput[]).map((s) => ({ ...s, observed_on: toDbDate(s.observed_on) })),
+      skipDuplicates: true,
+    });
     await tx.contact.createMany({ data: demo.contacts, skipDuplicates: true });
-    await tx.opportunity.createMany({ data: demo.opportunities, skipDuplicates: true });
+    await tx.opportunity.createMany({
+      data: (demo.opportunities as Prisma.OpportunityCreateManyInput[]).map((o) => ({ ...o, closed_on: toDbDate(o.closed_on) })),
+      skipDuplicates: true,
+    });
 
     // Proveniência do arquivo de origem (hash conferível, INV-13: nenhum segredo aqui).
     const xlsx = readFileSync(path.join(root, "seed", "allya-case-original.xlsx"));

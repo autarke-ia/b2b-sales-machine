@@ -13,18 +13,18 @@ describeIfDb("Trilha append-only e privilégios", () => {
 
   test("AUD03/INV-2 — credencial da app não escreve na trilha", async () => {
     for (const statement of [
-      `UPDATE "AuditEvent" SET operation = 'tampered'`,
-      `DELETE FROM "AuditEvent"`,
-      `TRUNCATE "AuditEvent"`,
-      `INSERT INTO "AuditEvent" ("id","entity_type","entity_id","operation","source") VALUES (gen_random_uuid(),'x','00000000-0000-0000-0000-000000000000','create','manual')`,
+      `UPDATE "audit_events" SET operation = 'tampered'`,
+      `DELETE FROM "audit_events"`,
+      `TRUNCATE "audit_events"`,
+      `INSERT INTO "audit_events" ("id","entity_type","entity_id","operation","source") VALUES (gen_random_uuid(),'x','00000000-0000-0000-0000-000000000000','create','manual')`,
     ]) {
       await expect(prisma.$executeRawUnsafe(statement)).rejects.toThrow();
     }
     const canInsert = await prisma.$queryRaw<Array<{ v: boolean }>>`
-      SELECT has_table_privilege(current_user, 'AuditEvent', 'INSERT') AS v`;
+      SELECT has_table_privilege(current_user, 'audit_events', 'INSERT') AS v`;
     expect(canInsert[0].v).toBe(false);
     const canUpdate = await prisma.$queryRaw<Array<{ v: boolean }>>`
-      SELECT has_table_privilege(current_user, 'AuditEvent', 'UPDATE') AS v`;
+      SELECT has_table_privilege(current_user, 'audit_events', 'UPDATE') AS v`;
     expect(canUpdate[0].v).toBe(false);
   });
 
@@ -38,7 +38,7 @@ describeIfDb("Trilha append-only e privilégios", () => {
     await expect(
       prisma.$transaction([
         prisma.$executeRawUnsafe(
-          `UPDATE "Company" SET name = name || ' — alteração sem ator' WHERE id = '${company.id}'`,
+          `UPDATE "companies" SET name = name || ' — alteração sem ator' WHERE id = '${company.id}'`,
         ),
       ]),
     ).rejects.toThrow(/AUDIT_ACTOR_MISSING/);

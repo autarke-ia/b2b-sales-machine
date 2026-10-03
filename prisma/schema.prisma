@@ -2,6 +2,9 @@
 // Datas/hora UTC (timestamptz), dinheiro em centavos (bigint), snapshots em jsonb.
 // A trilha audit_events é append-only: a credencial da app não tem UPDATE/DELETE/TRUNCATE
 // nem INSERT direto (escrita só via função SECURITY DEFINER acionada por trigger).
+//
+// Nomes físicos (tabelas e tipos enum) em snake_case via @@map, conforme doc 04 §3 e a
+// convenção do workspace — a API do Prisma Client (prisma.company.*) não muda com @@map.
 
 generator client {
   provider = "prisma-client-js"
@@ -15,12 +18,16 @@ datasource db {
 enum DatasetKind {
   demo
   user
+
+  @@map("dataset_kind")
 }
 
 enum Level {
   low
   medium
   high
+
+  @@map("level")
 }
 
 enum RenewalWindow {
@@ -28,38 +35,50 @@ enum RenewalWindow {
   m4_6
   m7_12
   over_12
+
+  @@map("renewal_window")
 }
 
 enum OperatingStatus {
   active
   inactive
   unknown
+
+  @@map("operating_status")
 }
 
 enum SignalStrength {
   low
   medium
   high
+
+  @@map("signal_strength")
 }
 
 enum ContactChannelType {
-  institutional_site
+  institutional_page
   generic_corporate_email
   professional_profile
   corporate_phone
-  contact_page
-  other_public_channel
+  company_contact_page
+  other_public
+
+  @@map("contact_channel_type")
 }
 
 enum OpportunityResult {
   won
   lost
   negotiating
+
+  @@map("opportunity_result")
 }
 
 enum RulesetStatus {
   draft
   published
+
+  @@map("ruleset_status")
 }
 
 enum ImportTarget {
@@ -71,11 +90,15 @@ enum ImportTarget {
   icp_rules
   priority_rules
   disqualifiers
+
+  @@map("import_target")
 }
 
 enum MergePolicy {
   fill_missing
   overwrite_non_null
+
+  @@map("merge_policy")
 }
 
 enum ImportBatchStatus {
@@ -84,6 +107,8 @@ enum ImportBatchStatus {
   committed
   invalid
   expired
+
+  @@map("import_batch_status")
 }
 
 enum JobState {
@@ -92,6 +117,8 @@ enum JobState {
   completed
   partial_failed
   failed
+
+  @@map("job_state")
 }
 
 enum JobItemState {
@@ -100,6 +127,8 @@ enum JobItemState {
   succeeded
   failed
   skipped
+
+  @@map("job_item_state")
 }
 
 enum SuggestionRelation {
@@ -107,6 +136,8 @@ enum SuggestionRelation {
   contradiction
   fill
   inconclusive
+
+  @@map("suggestion_relation")
 }
 
 enum SuggestionState {
@@ -115,17 +146,23 @@ enum SuggestionState {
   rejected
   deferred
   stale
+
+  @@map("suggestion_state")
 }
 
 enum ReviewAction {
   accept
   reject
   defer
+
+  @@map("review_action")
 }
 
 enum ReviewSessionMode {
   manual
   assisted
+
+  @@map("review_session_mode")
 }
 
 enum ReviewSessionState {
@@ -133,11 +170,15 @@ enum ReviewSessionState {
   paused
   completed
   abandoned
+
+  @@map("review_session_state")
 }
 
 enum TimingQuality {
   complete
   interrupted
+
+  @@map("timing_quality")
 }
 
 model User {
@@ -149,6 +190,8 @@ model User {
   created_at    DateTime  @default(now()) @db.Timestamptz(6)
   sessions      Session[]
   is_technical  Boolean   @default(false)
+
+  @@map("users")
 }
 
 model Session {
@@ -162,6 +205,7 @@ model Session {
   user       User      @relation(fields: [user_id], references: [id])
 
   @@index([user_id])
+  @@map("sessions")
 }
 
 model LoginAttempt {
@@ -171,6 +215,7 @@ model LoginAttempt {
   occurred_at DateTime @default(now()) @db.Timestamptz(6)
 
   @@index([email_norm, ip, occurred_at])
+  @@map("login_attempts")
 }
 
 model Dataset {
@@ -198,6 +243,7 @@ model Dataset {
   active_ruleset     Ruleset?           @relation("ActiveRuleset", fields: [active_ruleset_id], references: [id])
 
   @@index([kind])
+  @@map("datasets")
 }
 
 model Company {
@@ -238,6 +284,7 @@ model Company {
   @@unique([dataset_id, external_id])
   @@unique([id, dataset_id])
   @@index([dataset_id, archived_at])
+  @@map("companies")
 }
 
 model Signal {
@@ -265,6 +312,7 @@ model Signal {
   @@unique([dataset_id, external_id])
   @@index([dataset_id, company_id])
   @@index([company_id, archived_at])
+  @@map("signals")
 }
 
 model Contact {
@@ -277,8 +325,9 @@ model Contact {
   channel_type             ContactChannelType
   channel_value            String
   origin                   String?
-  decision_maker_identified Boolean           @default(false)
   is_professional_public   Boolean            @default(false)
+  source_allowed           Boolean?
+  decision_maker_identified Boolean           @default(false)
   is_synthetic             Boolean            @default(false)
   version                  Int                @default(1)
   created_at               DateTime           @default(now()) @db.Timestamptz(6)
@@ -292,6 +341,7 @@ model Contact {
   @@unique([dataset_id, external_id])
   @@index([dataset_id, company_id])
   @@index([company_id, archived_at])
+  @@map("contacts")
 }
 
 model Opportunity {
@@ -320,6 +370,7 @@ model Opportunity {
   @@unique([dataset_id, external_id])
   @@index([dataset_id, company_id])
   @@index([company_id, archived_at])
+  @@map("opportunities")
 }
 
 model Ruleset {
@@ -345,6 +396,7 @@ model Ruleset {
   @@unique([id, dataset_id])
   @@index([dataset_id, status])
   @@index([base_ruleset_id])
+  @@map("rulesets")
 }
 
 model SourceFile {
@@ -358,6 +410,7 @@ model SourceFile {
   received_by  String   @db.Uuid
 
   @@unique([dataset_id, sha256])
+  @@map("source_files")
 }
 
 model ImportBatch {
@@ -380,6 +433,7 @@ model ImportBatch {
   rows                ImportRow[]
 
   @@index([dataset_id, status])
+  @@map("import_batches")
 }
 
 model ImportRow {
@@ -394,6 +448,7 @@ model ImportRow {
   batch       ImportBatch @relation(fields: [import_id], references: [id])
 
   @@index([import_id])
+  @@map("import_rows")
 }
 
 model AnalysisJob {
@@ -419,6 +474,7 @@ model AnalysisJob {
 
   @@index([dataset_id, state])
   @@index([state, created_at])
+  @@map("analysis_jobs")
 }
 
 model AnalysisJobItem {
@@ -435,6 +491,7 @@ model AnalysisJobItem {
 
   @@unique([job_id, company_id])
   @@index([state, lease_until])
+  @@map("analysis_job_items")
 }
 
 model Suggestion {
@@ -462,6 +519,7 @@ model Suggestion {
 
   @@unique([dataset_id, fingerprint])
   @@index([company_id, state])
+  @@map("suggestions")
 }
 
 model ReviewDecision {
@@ -477,6 +535,7 @@ model ReviewDecision {
 
   @@unique([suggestion_id, idempotency_key])
   @@index([suggestion_id])
+  @@map("review_decisions")
 }
 
 model Assessment {
@@ -494,6 +553,7 @@ model Assessment {
 
   @@unique([company_id, input_revision, ruleset_id, as_of, dataset_revision, review_revision])
   @@index([dataset_id, ruleset_id, as_of])
+  @@map("assessments")
 }
 
 model RankingSnapshot {
@@ -510,6 +570,7 @@ model RankingSnapshot {
 
   @@unique([dataset_id, data_revision, review_revision, ruleset_id, as_of])
   @@index([dataset_id, created_at])
+  @@map("ranking_snapshots")
 }
 
 model ReviewSession {
@@ -532,6 +593,7 @@ model ReviewSession {
 
   @@index([dataset_id, user_id, state])
   @@index([company_id, state])
+  @@map("review_sessions")
 }
 
 model ReviewSessionEvent {
@@ -545,6 +607,7 @@ model ReviewSessionEvent {
 
   @@index([session_id])
   @@index([server_timestamp])
+  @@map("review_session_events")
 }
 
 /// Append-only. Escrita EXCLUSIVAMENTE pela função SECURITY DEFINER acionada por trigger
@@ -569,6 +632,7 @@ model AuditEvent {
 
   @@index([entity_type, entity_id, version_after])
   @@index([dataset_id, occurred_at])
+  @@map("audit_events")
 }
 
 model IdempotencyRecord {
@@ -585,4 +649,5 @@ model IdempotencyRecord {
 
   @@unique([user_id, method, route, key])
   @@index([expires_at])
+  @@map("idempotency_records")
 }
