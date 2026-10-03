@@ -1,0 +1,86 @@
+name: app-ecr
+
+# Build + push da imagem Docker do app para o ECR — paridade com o website-ecr do
+# autarkeia-website / api-ecr do Mindville: OIDC (sem chave estática) → login ECR →
+# buildx → push. NÃO faz deploy — pull do digest + restart é passo separado.
+#
+# Dois guards VISÍVEIS (job aparece como skipped, não falha):
+#   1. package.json presente — a main nasce spec-only; sem app não há imagem.
+#   2. vars.AWS_ROLE_TO_ASSUME configurada — exige, do lado da org/GitHub:
+#        · repositório ECR `b2b-sales-machine` em sa-east-1;
+#        · role IAM com trust OIDC do GitHub Actions e permissões ECR;
+#        · variable AWS_ROLE_TO_ASSUME no repositório (arn:aws:iam::...).
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: sa-east-1
+  ECR_REPOSITORY: b2b-sales-machine
+
+jobs:
+  app-present:
+    runs-on: ubuntu-latest
+    outputs:
+      has_app: ${{ steps.check.outputs.has_app }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: check
+        run: |
+          if [ -f package.json ]; then echo "has_app=true" >> "$GITHUB_OUTPUT";
+          else echo "has_app=false" >> "$GITHUB_OUTPUT"; fi
+
+  build_and_push:
+    needs: app-present
+    if: needs.app-present.outputs.has_app == 'true' && vars.AWS_ROLE_TO_ASSUME != ''
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Determine Docker tags
+        id: docker-tags
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          TAGS="${REGISTRY}/${ECR_REPOSITORY}:sha-${GITHUB_SHA}"
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+            TAGS="${TAGS},${REGISTRY}/${ECR_REPOSITORY}:${VERSION}"
+          fi
+          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+
+      # Sem build-args de runtime: DATABASE_URL/segredos entram por env no deploy,
+      # nunca na imagem (INV-13).
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: ${{ steps.docker-tags.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

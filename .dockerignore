@@ -1,0 +1,24 @@
+# Segredos NUNCA no contexto de build (INV-13) — o .env local fica fora da imagem.
+.env
+.env.*
+!.env.example
+
+# Artefatos e controle de versão
+node_modules
+.next
+out
+.git
+.gitignore
+
+# Não fazem parte do runtime do container
+tests
+docs
+scripts
+.agents
+.github
+templates
+examples
+tools
+*.md
+SHA256SUMS.txt
+manifest.json

@@ -1,0 +1,119 @@
+name: PR Gate
+
+# Gate de PR — paridade com o pr-gate do autarkeia-website (pnpm, lint → typecheck →
+# test → build) + o job db-tests do autarkeia-method (Postgres EFÊMERO de serviço,
+# nunca o RDS compartilhado). Enquanto a main for só o pacote de especificação
+# (package.json chega no PR da Fase 0), o guard `app-present` pula os jobs de app
+# de forma VISÍVEL (skipped, não vermelho e não silencioso).
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # Guard — a main nasce spec-only; sem package.json não há o que gatear ainda.
+  app-present:
+    runs-on: ubuntu-latest
+    outputs:
+      has_app: ${{ steps.check.outputs.has_app }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: check
+        run: |
+          if [ -f package.json ]; then echo "has_app=true" >> "$GITHUB_OUTPUT";
+          else echo "has_app=false" >> "$GITHUB_OUTPUT"; echo "package.json ausente — main spec-only, jobs de app pulados."; fi
+
+  verify:
+    needs: app-present
+    if: needs.app-present.outputs.has_app == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Provisiona o pnpm na versão do campo packageManager (pnpm@9.15.9).
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: pnpm
+
+      - name: Install (lockfile congelado)
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+  # db-tests — padrão do autarkeia-method: Postgres 16 efêmero (criado e destruído
+  # com o job; NUNCA o RDS mindville_db). Aplica bootstrap de papéis + migrations +
+  # seed com as DUAS credenciais reais (owner e b2bsm_app restrito), então a suíte
+  # de contrato (AUD02/AUD03/INV-1/INV-2/seed) roda DE VERDADE no CI — incluindo a
+  # prova de que a credencial da app não escreve na trilha de auditoria.
+  db-tests:
+    needs: app-present
+    if: needs.app-present.outputs.has_app == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: b2bsm_ci_owner
+          POSTGRES_PASSWORD: b2bsm_ci_owner
+          POSTGRES_DB: b2bsm_ci_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Owner (migrations/bootstrap) e app (runtime restrito) — par de credenciais
+      # exigido pelo db:setup; senhas efêmeras do job, nenhum segredo real aqui.
+      DATABASE_MIGRATION_URL: "postgresql://b2bsm_ci_owner:b2bsm_ci_owner@localhost:5432/b2bsm_ci_test"
+      DATABASE_URL: "postgresql://b2bsm_app:b2bsm_ci_app@localhost:5432/b2bsm_ci_test"
+      APP_DB_PASSWORD: "b2bsm_ci_app"
+      APP_ORIGIN: "http://localhost:3000"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install (lockfile congelado)
+        run: pnpm install --frozen-lockfile
+
+      # Guard de skip honesto (padrão do method): os testes pulam sem DATABASE_URL
+      # (`describeIfDb`); este passo confere que a lista de arquivos que usam o guard
+      # bate com os que este job executa — um arquivo novo de teste de banco que não
+      # rodar aqui é gate furado, não "verde de sorte".
+      - name: Guard — nenhum arquivo describeIfDb fora do alcance deste job
+        run: |
+          EXPECTED="tests/contract/db-audit.test.ts tests/contract/seed.test.ts"
+          ACTUAL=$(grep -rl "describeIfDb" tests/ 2>/dev/null | sort | tr '\n' ' ' | sed 's/ $//' || true)
+          EXPECTED_SORTED=$(echo "$EXPECTED" | tr ' ' '\n' | sort | tr '\n' ' ' | sed 's/ $//')
+          if [ "$ACTUAL" != "$EXPECTED_SORTED" ]; then
+            echo "✖ A lista de arquivos com describeIfDb mudou e não bate com a que este job roda."
+            echo "  Esperado: $EXPECTED_SORTED"
+            echo "  Real:     $ACTUAL"
+            echo "  Adicione o(s) arquivo(s) novo(s) à lista — senão voltam a pular em silêncio no CI."
+            exit 1
+          fi
+
+      - name: Setup do banco (papéis → migrations → seed)
+        run: pnpm db:setup
+
+      - name: Testes (domínio + contrato contra Postgres real)
+        run: pnpm test
