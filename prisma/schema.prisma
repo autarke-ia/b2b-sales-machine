@@ -1,0 +1,653 @@
+// Schema conforme doc 04 §3 do pacote de especificação v1.0.0.
+// Datas/hora UTC (timestamptz), dinheiro em centavos (bigint), snapshots em jsonb.
+// A trilha audit_events é append-only: a credencial da app não tem UPDATE/DELETE/TRUNCATE
+// nem INSERT direto (escrita só via função SECURITY DEFINER acionada por trigger).
+//
+// Nomes físicos (tabelas e tipos enum) em snake_case via @@map, conforme doc 04 §3 e a
+// convenção do workspace — a API do Prisma Client (prisma.company.*) não muda com @@map.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DatasetKind {
+  demo
+  user
+
+  @@map("dataset_kind")
+}
+
+enum Level {
+  low
+  medium
+  high
+
+  @@map("level")
+}
+
+enum RenewalWindow {
+  m0_3
+  m4_6
+  m7_12
+  over_12
+
+  @@map("renewal_window")
+}
+
+enum OperatingStatus {
+  active
+  inactive
+  unknown
+
+  @@map("operating_status")
+}
+
+enum SignalStrength {
+  low
+  medium
+  high
+
+  @@map("signal_strength")
+}
+
+enum ContactChannelType {
+  institutional_page
+  generic_corporate_email
+  professional_profile
+  corporate_phone
+  company_contact_page
+  other_public
+
+  @@map("contact_channel_type")
+}
+
+enum OpportunityResult {
+  won
+  lost
+  negotiating
+
+  @@map("opportunity_result")
+}
+
+enum RulesetStatus {
+  draft
+  published
+
+  @@map("ruleset_status")
+}
+
+enum ImportTarget {
+  full_xlsx
+  companies
+  signals
+  contacts
+  opportunities
+  icp_rules
+  priority_rules
+  disqualifiers
+
+  @@map("import_target")
+}
+
+enum MergePolicy {
+  fill_missing
+  overwrite_non_null
+
+  @@map("merge_policy")
+}
+
+enum ImportBatchStatus {
+  pending
+  previewed
+  committed
+  invalid
+  expired
+
+  @@map("import_batch_status")
+}
+
+enum JobState {
+  queued
+  running
+  completed
+  partial_failed
+  failed
+
+  @@map("job_state")
+}
+
+enum JobItemState {
+  queued
+  running
+  succeeded
+  failed
+  skipped
+
+  @@map("job_item_state")
+}
+
+enum SuggestionRelation {
+  confirmation
+  contradiction
+  fill
+  inconclusive
+
+  @@map("suggestion_relation")
+}
+
+enum SuggestionState {
+  pending
+  accepted
+  rejected
+  deferred
+  stale
+
+  @@map("suggestion_state")
+}
+
+enum ReviewAction {
+  accept
+  reject
+  defer
+
+  @@map("review_action")
+}
+
+enum ReviewSessionMode {
+  manual
+  assisted
+
+  @@map("review_session_mode")
+}
+
+enum ReviewSessionState {
+  active
+  paused
+  completed
+  abandoned
+
+  @@map("review_session_state")
+}
+
+enum TimingQuality {
+  complete
+  interrupted
+
+  @@map("timing_quality")
+}
+
+model User {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String    @unique
+  name          String
+  password_hash String
+  active        Boolean   @default(true)
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  sessions      Session[]
+  is_technical  Boolean   @default(false)
+
+  @@map("users")
+}
+
+model Session {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String    @db.Uuid
+  token_hash String    @unique
+  csrf_hash  String
+  expires_at DateTime  @db.Timestamptz(6)
+  revoked_at DateTime? @db.Timestamptz(6)
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  user       User      @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@map("sessions")
+}
+
+model LoginAttempt {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email_norm  String
+  ip          String
+  occurred_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([email_norm, ip, occurred_at])
+  @@map("login_attempts")
+}
+
+model Dataset {
+  id                 String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String
+  kind               DatasetKind @default(user)
+  version            Int         @default(1)
+  data_revision      Int         @default(1)
+  review_revision    Int         @default(1)
+  default_as_of      DateTime    @db.Date
+  active_ruleset_id  String?     @unique @db.Uuid
+  created_at         DateTime    @default(now()) @db.Timestamptz(6)
+  created_by         String      @db.Uuid
+  updated_at         DateTime?   @db.Timestamptz(6)
+  updated_by         String?     @db.Uuid
+  companies          Company[]
+  signals            Signal[]
+  contacts           Contact[]
+  opportunities      Opportunity[]
+  import_batches     ImportBatch[]
+  analysis_jobs      AnalysisJob[]
+  review_sessions    ReviewSession[]
+  ranking_snapshots  RankingSnapshot[]
+  rulesets           Ruleset[]
+  active_ruleset     Ruleset?           @relation("ActiveRuleset", fields: [active_ruleset_id], references: [id])
+
+  @@index([kind])
+  @@map("datasets")
+}
+
+model Company {
+  id                            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dataset_id                    String          @db.Uuid
+  external_id                   String
+  name                          String
+  domain                        String?
+  segment                       String?
+  employees                     Int?
+  uf                            String?
+  operates_in_brazil            Boolean?
+  hr_structured                 Boolean?
+  has_benefits                  Boolean?
+  seeks_benefit_differentiation Boolean?
+  multi_region                  Boolean?
+  growth                        Level?
+  employer_branding             Level?
+  retention_pain                Level?
+  renewal_window                RenewalWindow?
+  renewed_24_plus               Boolean?
+  operating_status              OperatingStatus @default(unknown)
+  source_label                  String?
+  is_synthetic                  Boolean         @default(false)
+  version                       Int             @default(1)
+  input_revision                Int             @default(1)
+  created_at                    DateTime        @default(now()) @db.Timestamptz(6)
+  created_by                    String          @db.Uuid
+  updated_at                    DateTime?       @db.Timestamptz(6)
+  updated_by                    String?         @db.Uuid
+  archived_at                   DateTime?       @db.Timestamptz(6)
+  dataset                       Dataset         @relation(fields: [dataset_id], references: [id])
+  signals                       Signal[]
+  contacts                      Contact[]
+  opportunities                 Opportunity[]
+  assessments                   Assessment[]
+
+  @@unique([dataset_id, external_id])
+  @@unique([id, dataset_id])
+  @@index([dataset_id, archived_at])
+  @@map("companies")
+}
+
+model Signal {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dataset_id    String         @db.Uuid
+  company_id    String         @db.Uuid
+  external_id   String
+  signal_type   String
+  evidence_text String         @db.Text
+  strength      SignalStrength
+  observed_on   DateTime?      @db.Date
+  source_name   String?
+  source_url    String?        @db.VarChar(2048)
+  source_allowed Boolean?
+  is_synthetic  Boolean        @default(false)
+  version       Int            @default(1)
+  created_at    DateTime       @default(now()) @db.Timestamptz(6)
+  created_by    String         @db.Uuid
+  updated_at    DateTime?      @db.Timestamptz(6)
+  updated_by    String?        @db.Uuid
+  archived_at   DateTime?      @db.Timestamptz(6)
+  dataset       Dataset        @relation(fields: [dataset_id], references: [id])
+  company       Company        @relation(fields: [company_id, dataset_id], references: [id, dataset_id])
+
+  @@unique([dataset_id, external_id])
+  @@index([dataset_id, company_id])
+  @@index([company_id, archived_at])
+  @@map("signals")
+}
+
+model Contact {
+  id                       String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dataset_id               String             @db.Uuid
+  company_id               String             @db.Uuid
+  external_id              String
+  full_name                String?
+  job_title                String?
+  channel_type             ContactChannelType
+  channel_value            String
+  origin                   String?
+  is_professional_public   Boolean            @default(false)
+  source_allowed           Boolean?
+  decision_maker_identified Boolean           @default(false)
+  is_synthetic             Boolean            @default(false)
+  version                  Int                @default(1)
+  created_at               DateTime           @default(now()) @db.Timestamptz(6)
+  created_by               String             @db.Uuid
+  updated_at               DateTime?          @db.Timestamptz(6)
+  updated_by               String?            @db.Uuid
+  archived_at              DateTime?          @db.Timestamptz(6)
+  dataset                  Dataset            @relation(fields: [dataset_id], references: [id])
+  company                  Company            @relation(fields: [company_id, dataset_id], references: [id, dataset_id])
+
+  @@unique([dataset_id, external_id])
+  @@index([dataset_id, company_id])
+  @@index([company_id, archived_at])
+  @@map("contacts")
+}
+
+model Opportunity {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dataset_id       String            @db.Uuid
+  company_id       String            @db.Uuid
+  external_id      String
+  result           OpportunityResult
+  closed_on        DateTime?         @db.Date
+  segment_at_close String?
+  cycle_days       Int?
+  estimated_ticket_cents BigInt?
+  reason           String?
+  sponsor          String?
+  origin           String?
+  is_synthetic     Boolean           @default(false)
+  version          Int               @default(1)
+  created_at       DateTime          @default(now()) @db.Timestamptz(6)
+  created_by       String            @db.Uuid
+  updated_at       DateTime?         @db.Timestamptz(6)
+  updated_by       String?           @db.Uuid
+  archived_at      DateTime?         @db.Timestamptz(6)
+  dataset          Dataset           @relation(fields: [dataset_id], references: [id])
+  company          Company           @relation(fields: [company_id, dataset_id], references: [id, dataset_id])
+
+  @@unique([dataset_id, external_id])
+  @@index([dataset_id, company_id])
+  @@index([company_id, archived_at])
+  @@map("opportunities")
+}
+
+model Ruleset {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dataset_id      String         @db.Uuid
+  status          RulesetStatus
+  config          Json
+  base_ruleset_id String?        @db.Uuid
+  version         Int            @default(1)
+  created_at      DateTime       @default(now()) @db.Timestamptz(6)
+  created_by      String         @db.Uuid
+  published_at    DateTime?      @db.Timestamptz(6)
+  published_by    String?        @db.Uuid
+  updated_at      DateTime?      @db.Timestamptz(6)
+  updated_by      String?        @db.Uuid
+  dataset         Dataset        @relation(fields: [dataset_id], references: [id])
+  base            Ruleset?       @relation("RulesetLineage", fields: [base_ruleset_id, dataset_id], references: [id, dataset_id])
+  children        Ruleset[]      @relation("RulesetLineage")
+  active_for      Dataset[]      @relation("ActiveRuleset")
+
+  // Linhagem (doc 04 §10): rascunhos irmãos compartilham a mesma base publicada,
+  // por isso base_ruleset_id NÃO é unique; a FK composta impede base de outra base.
+  @@unique([id, dataset_id])
+  @@index([dataset_id, status])
+  @@index([base_ruleset_id])
+  @@map("rulesets")
+}
+
+model SourceFile {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dataset_id   String   @db.Uuid
+  sha256       String
+  size_bytes   BigInt
+  original_name String
+  storage_path String
+  received_at  DateTime @default(now()) @db.Timestamptz(6)
+  received_by  String   @db.Uuid
+
+  @@unique([dataset_id, sha256])
+  @@map("source_files")
+}
+
+model ImportBatch {
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dataset_id          String            @db.Uuid
+  source_file_id      String            @db.Uuid
+  target              ImportTarget
+  merge_policy        MergePolicy       @default(fill_missing)
+  separator           String?
+  expected_version    Int
+  expected_data_revision Int
+  status              ImportBatchStatus @default(pending)
+  counts              Json?
+  expires_at          DateTime          @db.Timestamptz(6)
+  committed_at        DateTime?         @db.Timestamptz(6)
+  commit_error        Json?
+  created_at          DateTime          @default(now()) @db.Timestamptz(6)
+  created_by          String            @db.Uuid
+  dataset             Dataset           @relation(fields: [dataset_id], references: [id])
+  rows                ImportRow[]
+
+  @@index([dataset_id, status])
+  @@map("import_batches")
+}
+
+model ImportRow {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  import_id   String      @db.Uuid
+  sheet       String?
+  row_number  Int
+  raw         Json?
+  normalized  Json?
+  action      String?
+  errors      Json?
+  batch       ImportBatch @relation(fields: [import_id], references: [id])
+
+  @@index([import_id])
+  @@map("import_rows")
+}
+
+model AnalysisJob {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dataset_id     String    @db.Uuid
+  scope          String
+  state          JobState  @default(queued)
+  requested      Int       @default(0)
+  processed      Int       @default(0)
+  failed         Int       @default(0)
+  skipped        Int       @default(0)
+  model          String?
+  prompt_version String?
+  usage          Json?
+  error          Json?
+  attempts       Int       @default(0)
+  retry_of_job_id String?  @db.Uuid
+  created_at     DateTime  @default(now()) @db.Timestamptz(6)
+  created_by     String    @db.Uuid
+  updated_at     DateTime? @db.Timestamptz(6)
+  dataset        Dataset   @relation(fields: [dataset_id], references: [id])
+  items          AnalysisJobItem[]
+
+  @@index([dataset_id, state])
+  @@index([state, created_at])
+  @@map("analysis_jobs")
+}
+
+model AnalysisJobItem {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  job_id       String       @db.Uuid
+  company_id   String       @db.Uuid
+  state        JobItemState @default(queued)
+  frozen_input Json?
+  attempts     Int          @default(0)
+  error        Json?
+  lease_until  DateTime?    @db.Timestamptz(6)
+  result       Json?
+  job          AnalysisJob  @relation(fields: [job_id], references: [id])
+
+  @@unique([job_id, company_id])
+  @@index([state, lease_until])
+  @@map("analysis_job_items")
+}
+
+model Suggestion {
+  id                   String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dataset_id           String             @db.Uuid
+  company_id           String             @db.Uuid
+  job_id               String?            @db.Uuid
+  job_item_id          String?            @db.Uuid
+  field                String
+  current_value        Json?
+  proposed_value       Json?
+  relation             SuggestionRelation
+  confidence           String?
+  rationale            String?
+  evidence             Json
+  base_company_version Int
+  fingerprint          String
+  state                SuggestionState    @default(pending)
+  version              Int                @default(1)
+  created_at           DateTime           @default(now()) @db.Timestamptz(6)
+  created_by           String             @db.Uuid
+  updated_at           DateTime?          @db.Timestamptz(6)
+  updated_by           String?            @db.Uuid
+  decisions            ReviewDecision[]
+
+  @@unique([dataset_id, fingerprint])
+  @@index([company_id, state])
+  @@map("suggestions")
+}
+
+model ReviewDecision {
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  suggestion_id  String      @db.Uuid
+  user_id        String      @db.Uuid
+  action         ReviewAction
+  note           String?
+  review_session_id String?  @db.Uuid
+  idempotency_key String
+  occurred_at    DateTime    @default(now()) @db.Timestamptz(6)
+  suggestion     Suggestion  @relation(fields: [suggestion_id], references: [id])
+
+  @@unique([suggestion_id, idempotency_key])
+  @@index([suggestion_id])
+  @@map("review_decisions")
+}
+
+model Assessment {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dataset_id      String   @db.Uuid
+  company_id      String   @db.Uuid
+  input_revision  Int
+  ruleset_id      String   @db.Uuid
+  as_of           DateTime @db.Date
+  dataset_revision Int
+  review_revision Int
+  payload         Json
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  company         Company  @relation(fields: [company_id], references: [id])
+
+  @@unique([company_id, input_revision, ruleset_id, as_of, dataset_revision, review_revision])
+  @@index([dataset_id, ruleset_id, as_of])
+  @@map("assessments")
+}
+
+model RankingSnapshot {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dataset_id     String   @db.Uuid
+  data_revision  Int
+  review_revision Int
+  ruleset_id     String   @db.Uuid
+  as_of          DateTime @db.Date
+  rows           Json
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+  created_by     String   @db.Uuid
+  dataset        Dataset  @relation(fields: [dataset_id], references: [id])
+
+  @@unique([dataset_id, data_revision, review_revision, ruleset_id, as_of])
+  @@index([dataset_id, created_at])
+  @@map("ranking_snapshots")
+}
+
+model ReviewSession {
+  id          String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dataset_id  String             @db.Uuid
+  company_id  String             @db.Uuid
+  user_id     String             @db.Uuid
+  mode        ReviewSessionMode
+  state       ReviewSessionState @default(active)
+  active_seconds Int             @default(0)
+  wall_seconds   Int?
+  started_at  DateTime           @default(now()) @db.Timestamptz(6)
+  last_resumed_at DateTime       @default(now()) @db.Timestamptz(6)
+  finished_at DateTime?          @db.Timestamptz(6)
+  timing_quality TimingQuality  @default(complete)
+  input_revision_at_complete Int?
+  version     Int                @default(1)
+  dataset     Dataset            @relation(fields: [dataset_id], references: [id])
+  events      ReviewSessionEvent[]
+
+  @@index([dataset_id, user_id, state])
+  @@index([company_id, state])
+  @@map("review_sessions")
+}
+
+model ReviewSessionEvent {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id      String   @db.Uuid
+  event           String
+  expected_version Int
+  payload         Json?
+  server_timestamp DateTime @default(now()) @db.Timestamptz(6)
+  session         ReviewSession @relation(fields: [session_id], references: [id])
+
+  @@index([session_id])
+  @@index([server_timestamp])
+  @@map("review_session_events")
+}
+
+/// Append-only. Escrita EXCLUSIVAMENTE pela função SECURITY DEFINER acionada por trigger
+/// (doc 07). A credencial da app: sem UPDATE/DELETE/TRUNCATE e sem INSERT direto.
+model AuditEvent {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dataset_id     String?  @db.Uuid
+  entity_type    String
+  entity_id      String   @db.Uuid
+  operation      String
+  version_before Int?
+  version_after  Int?
+  changed_fields Json?
+  before         Json?
+  after          Json?
+  actor_user_id  String?  @db.Uuid
+  source         String
+  request_id     String?  @db.Uuid
+  import_id      String?  @db.Uuid
+  suggestion_id  String?  @db.Uuid
+  occurred_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([entity_type, entity_id, version_after])
+  @@index([dataset_id, occurred_at])
+  @@map("audit_events")
+}
+
+model IdempotencyRecord {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id     String   @db.Uuid
+  method      String
+  route       String
+  key         String
+  payload_hash String
+  status      String   @default("processing")
+  result      Json?
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  expires_at  DateTime @db.Timestamptz(6)
+
+  @@unique([user_id, method, route, key])
+  @@index([expires_at])
+  @@map("idempotency_records")
+}
