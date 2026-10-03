@@ -69,7 +69,7 @@ export async function createRelated(
         await tx.company.update({ where: { id: parent.id }, data: { input_revision: { increment: 1 } } });
       }
       await tx.dataset.update({ where: { id: dataset.id }, data: { data_revision: { increment: 1 }, version: { increment: 1 }, updated_at: new Date(), updated_by: mctx.userId } });
-      return created;
+      return serializeRow(created) as Record<string, unknown>;
     } catch (e) {
       if ((e as { code?: string }).code === "P2002") {
         throw validation(`external_id já existe nesta base: ${String(external_id)}`, [{ field: "external_id", message: "duplicado" }]);
@@ -102,8 +102,10 @@ export async function patchRelated(
     const parent = await tx.company.findUnique({ where: { id: current.company_id as string }, select: { archived_at: true } });
     if (parent?.archived_at) throw validation("Empresa arquivada — restaure antes de editar seus registros.");
 
-    const effective = Object.entries(serializeFields(kind, clean)).filter(([k, v]) => current[k] !== v);
-    if (effective.length === 0) return current;
+    const sameValue = (a: unknown, b: unknown) =>
+      a instanceof Date && b instanceof Date ? a.getTime() === b.getTime() : a === b;
+    const effective = Object.entries(serializeFields(kind, clean)).filter(([k, v]) => !sameValue(current[k], v));
+    if (effective.length === 0) return serializeRow(current) as Record<string, unknown>;
     if (current.version !== expectedVersion) {
       throw conflict("VERSION_CONFLICT", "O registro mudou. Atualize os dados antes de salvar.", {
         expected_version: expectedVersion,
@@ -113,7 +115,7 @@ export async function patchRelated(
 
     const updated = await (tx as unknown as Record<string, { update: (a: never) => Promise<Record<string, unknown>> }>)[model]
       .update({
-        where: { id: recordId, version: expectedVersion },
+        where: { id: recordId, dataset_id: dataset.id, version: expectedVersion },
         data: {
           ...serializeFields(kind, clean),
           version: { increment: 1 },
@@ -135,7 +137,7 @@ export async function patchRelated(
       await tx.company.update({ where: { id: current.company_id as string }, data: { input_revision: { increment: 1 } } });
     }
     await tx.dataset.update({ where: { id: dataset.id }, data: { data_revision: { increment: 1 }, version: { increment: 1 }, updated_at: new Date(), updated_by: mctx.userId } });
-    return updated;
+    return serializeRow(updated) as Record<string, unknown>;
   });
 }
 
@@ -154,7 +156,9 @@ export async function archiveRelated(
       where: { id: recordId },
     } as never)) as Record<string, unknown> | null;
     if (!current || current.dataset_id !== dataset.id) throw notFound("Registro não encontrado nesta base.");
-    if (archived === Boolean(current.archived_at)) return current;
+    const parentArch = await tx.company.findUnique({ where: { id: current.company_id as string }, select: { archived_at: true } });
+    if (parentArch?.archived_at) throw validation("Empresa arquivada — restaure antes de alterar seus registros.");
+    if (archived === Boolean(current.archived_at)) return serializeRow(current) as Record<string, unknown>;
     if (current.version !== expectedVersion) {
       throw conflict("VERSION_CONFLICT", "O registro mudou. Atualize os dados antes de arquivar.", {
         expected_version: expectedVersion,
@@ -163,7 +167,7 @@ export async function archiveRelated(
     }
     const updated = await (tx as unknown as Record<string, { update: (a: never) => Promise<Record<string, unknown>> }>)[model]
       .update({
-        where: { id: recordId, version: expectedVersion },
+        where: { id: recordId, dataset_id: dataset.id, version: expectedVersion },
         data: { archived_at: archived ? new Date() : null, version: { increment: 1 }, updated_at: new Date(), updated_by: mctx.userId },
       } as never)
       .catch(async (e) => {
@@ -178,7 +182,7 @@ export async function archiveRelated(
       await tx.company.update({ where: { id: current.company_id as string }, data: { input_revision: { increment: 1 } } });
     }
     await tx.dataset.update({ where: { id: dataset.id }, data: { data_revision: { increment: 1 }, version: { increment: 1 }, updated_at: new Date(), updated_by: mctx.userId } });
-    return updated;
+    return serializeRow(updated) as Record<string, unknown>;
   });
 }
 
@@ -222,6 +226,14 @@ export async function relatedHistory(
     pageSize,
     totalPages: Math.ceil(total / pageSize),
   };
+}
+
+/** Serialização pública: BigInt → number (JSON.stringify lança em BigInt). */
+export function serializeRow(row: Record<string, unknown> | null): Record<string, unknown> | null {
+  if (!row) return row;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(row)) out[k] = typeof v === "bigint" ? Number(v) : v;
+  return out;
 }
 
 /** Datas ISO → Date e centavos → BigInt para o Prisma. */

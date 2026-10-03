@@ -74,6 +74,8 @@ export async function publishRuleset(
 ): Promise<{ ruleset: Ruleset; dataset_revision: number }> {
   return prisma.$transaction(async (tx) => {
     await setActorContext(tx, { actor_user_id: userId, source: "manual" });
+    // Serializa publishes do mesmo rascunho (finder P1) e revalida sob lock.
+    await tx.$queryRaw`SELECT id FROM rulesets WHERE id = ${rulesetId}::uuid FOR UPDATE`;
     const draft = await tx.ruleset.findUnique({ where: { id: rulesetId } });
     if (!draft || draft.dataset_id !== dataset.id) throw notFound("Regra não encontrada nesta base.");
     if (draft.status === "published") throw conflict("RULESET_CONFLICT", "Versão já publicada — publique um novo rascunho.");
@@ -84,10 +86,17 @@ export async function publishRuleset(
         current_active_ruleset_id: fresh.active_ruleset_id,
       });
     }
-    const published = await tx.ruleset.update({
-      where: { id: rulesetId },
+    const published = await tx.ruleset
+      .update({
+      where: { id: rulesetId, status: "draft" },
       data: { status: "published", published_at: new Date(), published_by: userId, updated_at: new Date(), updated_by: userId },
-    });
+    })
+      .catch(async (e) => {
+        if ((e as { code?: string }).code === "P2025") {
+          throw conflict("RULESET_CONFLICT", "Publicação concorrente detectada — o rascunho já foi processado.", { ruleset_id: rulesetId });
+        }
+        throw e;
+      });
     const updatedDataset = await tx.dataset.update({
       where: { id: dataset.id },
       data: { active_ruleset_id: rulesetId, data_revision: { increment: 1 }, version: { increment: 1 }, updated_at: new Date(), updated_by: userId },

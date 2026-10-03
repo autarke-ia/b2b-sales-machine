@@ -8,6 +8,7 @@ import { parsePagination } from "@/server/services/companies";
 import { createRelated } from "@/server/services/related-write";
 import { opportunityCreateSchema } from "@/server/services/related-schema";
 import { runIdempotent } from "@/server/http/idempotency";
+import { serializeRow } from "@/server/services/related-write";
 
 const KIND = "opportunities" as const;
 
@@ -29,7 +30,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ dataset_id: str
       model.count({ where }),
       model.findMany({ where, orderBy: [{ external_id: "asc" }, { id: "asc" }], skip: (page - 1) * pageSize, take: pageSize }),
     ]);
-    return okJson(rows, {
+    return okJson(rows.map((r) => serializeRow(r as unknown as Record<string, unknown>)), {
       pagination: { page, page_size: pageSize, total, total_pages: Math.ceil(total / pageSize) },
     }, rid);
   } catch (e) {

@@ -230,3 +230,69 @@ describeIfDb("RULE01-04 — regras versionadas", () => {
     expect(history.data.map((h) => h.id)).toEqual(expect.arrayContaining([draft.data.id, activeBefore.data.id]));
   });
 });
+
+describeIfDb("Cobertura P0/P2 do finder — rotas nunca exercitadas", () => {
+  test("opportunities: POST com ticket (BigInt) e GET de volta sem 500 (regressão P0)", async () => {
+    const oppRoute = await import("../../app/api/v1/datasets/[dataset_id]/opportunities/route");
+    const created = await call(oppRoute.POST, `${base()}/opportunities`, {
+      method: "POST",
+      body: {
+        company_external_id: "EMP-T",
+        external_id: "OPP-T1",
+        result: "won",
+        closed_on: "2026-09-10",
+        segment_at_close: "Tecnologia",
+        estimated_ticket_cents: 22000000,
+        cycle_days: 45,
+      },
+      session: ctx,
+      headers: { "idempotency-key": `o1-${crypto.randomUUID()}` },
+    }, params());
+    expect(created.status).toBe(201);
+    const createdBody = await ok<{ estimated_ticket_cents: number; id: string }>(created);
+    expect(createdBody.data.estimated_ticket_cents).toBe(22000000);
+
+    const list = await call(oppRoute.GET, `${base()}/opportunities`, { session: ctx }, params());
+    expect(list.status).toBe(200);
+    const listBody = await ok<Array<{ estimated_ticket_cents: number | null }>>(list);
+    expect(listBody.data.some((o) => o.estimated_ticket_cents === 22000000)).toBe(true);
+
+    const oppItem = await import("../../app/api/v1/datasets/[dataset_id]/opportunities/[record_id]/route");
+    const item = await call(oppItem.GET, `${base()}/opportunities/${createdBody.data.id}`, { session: ctx }, { ...params(), record_id: createdBody.data.id });
+    expect(item.status).toBe(200);
+    const itemBody = await ok<{ estimated_ticket_cents: number | null; closed_on: string | null }>(item);
+    expect(itemBody.data.estimated_ticket_cents).toBe(22000000);
+  });
+
+  test("contacts: POST + GET item + PATCH arquivável", async () => {
+    const contactRoute = await import("../../app/api/v1/datasets/[dataset_id]/contacts/route");
+    const created = await call(contactRoute.POST, `${base()}/contacts`, {
+      method: "POST",
+      body: { company_external_id: "EMP-T", external_id: "CON-T1", channel_type: "corporate_phone", channel_value: "+55 11 4002-8922", source_allowed: true },
+      session: ctx,
+      headers: { "idempotency-key": `k1-${crypto.randomUUID()}` },
+    }, params());
+    expect(created.status).toBe(201);
+    const createdBody = await ok<{ id: string; channel_value: string }>(created);
+    expect(createdBody.data.channel_value).toContain("4002");
+
+    const contactItem = await import("../../app/api/v1/datasets/[dataset_id]/contacts/[record_id]/route");
+    const patched = await call(contactItem.PATCH, `${base()}/contacts/${createdBody.data.id}`, {
+      method: "PATCH",
+      body: { expected_version: 1, changes: { channel_type: "company_contact_page" } },
+      session: ctx,
+    }, { ...params(), record_id: createdBody.data.id });
+    expect(patched.status).toBe(200);
+    const patchedBody = await ok<{ channel_type: string }>(patched);
+    expect(patchedBody.data.channel_type).toBe("company_contact_page");
+  });
+
+  test("signals: GET de lista com filtro de empresa", async () => {
+    const signalRoute = await import("../../app/api/v1/datasets/[dataset_id]/signals/route");
+    const res = await call(signalRoute.GET, `${base()}/signals?company_id=${companyId}&include_archived=true`, { session: ctx }, params());
+    expect(res.status).toBe(200);
+    const body = await ok<Array<{ company_id: string }>>(res);
+    expect(body.data.length).toBeGreaterThanOrEqual(1);
+    for (const s of body.data) expect(s.company_id).toBe(companyId);
+  });
+});

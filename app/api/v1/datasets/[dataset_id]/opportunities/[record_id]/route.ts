@@ -4,7 +4,7 @@ import { requireMutationContext, requireSession } from "@/server/http/guard";
 import { badRequest, notFound, validation } from "@/server/http/errors";
 import { prisma } from "@/server/db/prisma";
 import { getDataset } from "@/server/services/datasets";
-import { patchRelated } from "@/server/services/related-write";
+import { patchRelated, serializeRow } from "@/server/services/related-write";
 import { versionedBody, opportunityPatchSchema } from "@/server/services/related-schema";
 
 const KIND = "opportunities" as const;
@@ -18,7 +18,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ dataset_id: str
     if (!dataset) throw notFound("Base não encontrada.");
     const row = await prisma.opportunity.findUnique({ where: { id: record_id } });
     if (!row || row.dataset_id !== dataset.id) throw notFound("Oportunidade não encontrada nesta base.");
-    return okJson(row, {}, rid);
+    return okJson(serializeRow(row as unknown as Record<string, unknown>), {}, rid);
   } catch (e) {
     return errorJson(e, rid);
   }

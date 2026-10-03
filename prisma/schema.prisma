@@ -310,6 +310,7 @@ model Signal {
   company       Company        @relation(fields: [company_id, dataset_id], references: [id, dataset_id])
 
   @@unique([dataset_id, external_id])
+  @@unique([id, dataset_id])
   @@index([dataset_id, company_id])
   @@index([company_id, archived_at])
   @@map("signals")
@@ -339,6 +340,7 @@ model Contact {
   company                  Company            @relation(fields: [company_id, dataset_id], references: [id, dataset_id])
 
   @@unique([dataset_id, external_id])
+  @@unique([id, dataset_id])
   @@index([dataset_id, company_id])
   @@index([company_id, archived_at])
   @@map("contacts")
@@ -368,6 +370,7 @@ model Opportunity {
   company          Company           @relation(fields: [company_id, dataset_id], references: [id, dataset_id])
 
   @@unique([dataset_id, external_id])
+  @@unique([id, dataset_id])
   @@index([dataset_id, company_id])
   @@index([company_id, archived_at])
   @@map("opportunities")

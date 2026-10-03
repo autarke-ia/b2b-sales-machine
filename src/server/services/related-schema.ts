@@ -32,7 +32,7 @@ export const contactPatchSchema = z
   .object({
     full_name: z.string().trim().min(1).max(240).nullish(),
     job_title: z.string().trim().min(1).max(240).nullish(),
-    channel_type: z.enum(["institutional_site", "generic_corporate_email", "professional_profile", "corporate_phone", "contact_page", "other_public_channel"]).nullish(),
+    channel_type: z.enum(["institutional_site", "generic_corporate_email", "professional_profile", "corporate_phone", "company_contact_page", "other_public"]).nullish(),
     channel_value: z.string().trim().min(1).max(512).nullish(),
     origin: z.string().trim().min(1).max(120).nullish(),
     decision_maker_identified: z.boolean().nullish(),
@@ -47,7 +47,7 @@ export const contactCreateSchema = z
     external_id: z.string().trim().min(1).max(120),
     full_name: z.string().trim().min(1).max(240).nullish(),
     job_title: z.string().trim().min(1).max(240).nullish(),
-    channel_type: z.enum(["institutional_site", "generic_corporate_email", "professional_profile", "corporate_phone", "contact_page", "other_public_channel"]),
+    channel_type: z.enum(["institutional_site", "generic_corporate_email", "professional_profile", "corporate_phone", "company_contact_page", "other_public"]),
     channel_value: z.string().trim().min(1).max(512),
     origin: z.string().trim().min(1).max(120).nullish(),
     decision_maker_identified: z.boolean().nullish(),

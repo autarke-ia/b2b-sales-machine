@@ -31,17 +31,18 @@ export default function RulesPage() {
   const [busy, setBusy] = useState(false);
   const [published, setPublished] = useState(false);
 
-  const load = useCallback(() => {
+  const load = useCallback((keepDraft = false) => {
     setError(null);
     api<RulesetDto>(`/datasets/${datasetId}/ruleset`)
       .then((res) => {
         setActive(res.data);
-        setDraft(structuredClone(res.data.config)); // edição local até publicar
+        // keepDraft: conflito/recuperação não pisa nas edições do usuário.
+        if (!keepDraft) setDraft(structuredClone(res.data.config));
       })
       .catch((e) => setError(e.message));
   }, [datasetId]);
 
-  useEffect(load, [load]);
+  useEffect(() => load(), [load]);
 
   async function createDraft(config: RuleConfigDto): Promise<string> {
     const res = await api<RulesetDto>(`/datasets/${datasetId}/rulesets/drafts`, {
@@ -71,7 +72,7 @@ export default function RulesPage() {
       load();
     } catch (e) {
       setError((e as Error).message);
-      if ((e as { code?: string }).code === "RULESET_CONFLICT") load(); // recupera ativa real
+      if ((e as { code?: string }).code === "RULESET_CONFLICT") load(true); // recupera ativa SEM pisar no rascunho
     } finally {
       setBusy(false);
     }
@@ -186,52 +187,3 @@ export default function RulesPage() {
   );
 }
 
-function RulesetView({ config }: { config: RuleConfigDto }) {
-  const icpSum = Object.values(config.icp.weights).reduce((a, b) => a + b, 0);
-  const prioSum = Object.values(config.priority.weights).reduce((a, b) => a + b, 0);
-  return (
-    <div className="grid gap-4 md:grid-cols-3">
-      <section aria-label="Gate ICP vigente" className="border border-line bg-panel">
-        <header className="flex items-center justify-between border-b border-line px-3 py-2">
-          <span className="eyebrow">Gate ICP</span>
-          <span className="mono text-[var(--text-2xs)] text-muted">corte {config.icp.threshold}</span>
-        </header>
-        <ul className="px-3 py-2">
-          {Object.entries(config.icp.weights).map(([k, w]) => (
-            <li key={k} className="flex justify-between py-0.5 text-[var(--text-xs)]">
-              <span className="mono text-muted">{k}</span>
-              <span className="num">{w}</span>
-            </li>
-          ))}
-          <li className="flex justify-between border-t border-line2 pt-1 text-[var(--text-xs)]">
-            <span className="text-muted">Σ</span><span className={`num ${icpSum === 100 ? "text-ok-fg" : "text-bad-fg"}`}>{icpSum}</span>
-          </li>
-        </ul>
-      </section>
-      <section aria-label="Priorização vigente" className="border border-line bg-panel">
-        <header className="border-b border-line px-3 py-2"><span className="eyebrow">Priorização</span></header>
-        <ul className="px-3 py-2">
-          {Object.entries(config.priority.weights).map(([k, w]) => (
-            <li key={k} className="flex justify-between py-0.5 text-[var(--text-xs)]">
-              <span className="mono text-muted">{k}</span><span className="num">{w}</span>
-            </li>
-          ))}
-          <li className="flex justify-between border-t border-line2 pt-1 text-[var(--text-xs)]">
-            <span className="text-muted">Σ</span><span className={`num ${prioSum === 100 ? "text-ok-fg" : "text-bad-fg"}`}>{prioSum}</span>
-          </li>
-        </ul>
-      </section>
-      <section aria-label="Desqualificadores vigentes" className="border border-line bg-panel">
-        <header className="border-b border-line px-3 py-2"><span className="eyebrow">Desqualificadores</span></header>
-        <ul className="px-3 py-2">
-          {Object.entries(config.disqualifiers).map(([id, cfg]) => (
-            <li key={id} className="flex justify-between py-0.5 text-[var(--text-xs)]">
-              <span className="mono text-muted">{id}</span>
-              <span>{id === "D03" ? "sempre ativo" : cfg.enabled ? "Ativo" : "Inativo"}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-    </div>
-  );
-}

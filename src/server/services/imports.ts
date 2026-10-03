@@ -83,7 +83,7 @@ const TARGETS: Record<ImportTargetName, { columns: ColumnSpec[]; idColumn: strin
       { canonical: "company_external_id", aliases: ["id empresa"], required: true, normalize: (v) => clean(v) },
       { canonical: "full_name", aliases: ["contato fictício", "contato ficticio"], normalize: text(240) },
       { canonical: "job_title", aliases: ["cargo provável", "cargo provavel"], normalize: text(240) },
-      { canonical: "channel_type", aliases: ["tipo canal"], required: true, normalize: (v) => { const t = clean(v).toLowerCase(); const ok = ["institutional_site","generic_corporate_email","professional_profile","corporate_phone","contact_page","other_public_channel"]; if (!ok.includes(t)) throw new NormalizeError("INVALID_CHANNEL", `Tipo de canal inválido: "${v}"`); return t; } },
+      { canonical: "channel_type", aliases: ["tipo canal"], required: true, normalize: (v) => { const t = clean(v).toLowerCase(); const ok = ["institutional_site","generic_corporate_email","professional_profile","corporate_phone","company_contact_page","other_public"]; if (!ok.includes(t)) throw new NormalizeError("INVALID_CHANNEL", `Tipo de canal inválido: "${v}"`); return t; } },
       { canonical: "channel_value", aliases: ["canal/contato fictício", "canal/contato ficticio"], required: true, normalize: (v) => clean(v).slice(0, 512) },
       { canonical: "origin", aliases: ["origem"], normalize: text(120) },
       { canonical: "decision_maker_identified", aliases: ["decisor identificado?"], normalize: boolOrNull },
