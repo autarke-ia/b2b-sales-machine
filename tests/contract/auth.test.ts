@@ -2,7 +2,7 @@
  * Fase 1.1 — AUTH01–04 + contrato de sessão (doc 03 §2, doc 07 §7).
  * Executa contra o banco dev real; usuários vêm de SEED_USERS (.env).
  */
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, beforeAll, expect, test } from "vitest";
 import { describeIfDb } from "../helpers/db";
 import * as loginRoute from "../../app/api/v1/auth/login/route";
 import * as sessionRoute from "../../app/api/v1/auth/session/route";

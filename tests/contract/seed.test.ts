@@ -2,7 +2,7 @@
  * 0.5T — Seed idempotente e usuários (IMP05, DATA01). Executa contra o banco dev real;
  * sem DATABASE_URL, é pulada.
  */
-import { describe, expect, test } from "vitest";
+import { expect, test } from "vitest";
 import { describeIfDb } from "../helpers/db";
 import { PrismaClient } from "@prisma/client";
 

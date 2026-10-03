@@ -2,7 +2,7 @@
  * 0.4T — Banco e auditoria (AUD02, AUD03, INV-1, INV-2). Executa contra o banco dev real;
  * sem DATABASE_URL, a suíte é pulada (fundação não depende de rede para typecheck/lint).
  */
-import { describe, expect, test } from "vitest";
+import { expect, test } from "vitest";
 import { describeIfDb } from "../helpers/db";
 import { PrismaClient } from "@prisma/client";
 
