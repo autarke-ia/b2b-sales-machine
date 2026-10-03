@@ -1,166 +1,162 @@
-# Runbook — Deploy do protótipo `ita-challenge.autarke.ia.br`
+# Runbook — Deploy do protótipo (`ita-challenge.autarke.ia.br`)
 
-Runbook **operacional** do protótipo B2B Sales Machine. Cobre o **deploy de uma nova
-versão**, o **rollback** e a **verificação**. Para o *setup inicial*
-(AWS/OIDC/IAM/Secrets Manager/DNS/TLS) e os *gotchas*, ver
+EC2 (Ubuntu) + Docker Compose + ECR → nginx faz proxy de
+`https://ita-challenge.autarke.ia.br` → `127.0.0.1:3001`. **Segredo vem do AWS
+Secrets Manager** (nunca `.env` no host) — o container herda a role da instância e
+busca `DATABASE_URL`/`SESSION_SECRET` no boot. Setup completo e porquês em
 **[`deploy/README.md`](../../deploy/README.md)**.
 
-> **Divisão de donos:** este runbook é a operação recorrente. O `deploy/README.md` é a
-> referência de arquitetura, dos artefatos em `deploy/` e do setup de uma-vez.
->
-> **Segredo vem do AWS Secrets Manager, nunca de `.env`** (`secrets-config`). O
-> container herda a role da EC2 e lê o secret `b2b-sales-machine/prod` no boot.
-
----
-
-## TL;DR (deploy de nova versão)
-
-**Método padrão — pin por digest, igual aos irmãos.** Copie o digest da imagem (UI do
-ECR ou CLI) e rode o script na caixa:
-
-```bash
-# na caixa, via SSM:
-sudo AWS_REGION=sa-east-1 IMAGE_DIGEST=sha256:<digest> bash scripts/deploy-ec2.sh
-```
-
-O script faz: re-login no ECR → `sed` do digest na linha `image:` do compose →
-`docker compose up -d --pull always` → verifica `curl 127.0.0.1:3001/api/v1/health`.
-
-O `app-ecr` **não** faz deploy — só publica a imagem. O deploy na caixa é sempre
-manual (pin por digest), igual ao backend Mindville.
-
----
-
-## Topologia (estado real — 2026-10-03)
+## Quick reference
 
 | Item | Valor |
 |---|---|
-| Conta AWS | `131464424960` · região `sa-east-1` |
-| Instância EC2 | `i-0f1ec133bb46a870d` · IP **dinâmico** `18.231.141.59` |
-| Repo ECR | `b2b-sales-machine` (pin por **digest**) |
-| Compose (caixa) | `/opt/mindville/docker-compose.b2b-sales-machine.prod.yml` · project `b2b-sales-machine` |
-| Container | `b2b_sales_machine` · `127.0.0.1:3001->3000` |
-| Secret (runtime) | `b2b-sales-machine/prod` (SM) → `DATABASE_URL`, `SESSION_SECRET` |
-| nginx do host | `/etc/nginx/sites-available/ita-challenge.autarke.ia.br` → `proxy_pass 127.0.0.1:3001` |
-| Domínio | `https://ita-challenge.autarke.ia.br` (TLS Let's Encrypt) |
-| Banco | RDS `mindville-db-dev` · `b2b_sales_machine_dev` |
-
-```
-push main / tag v*  ─▶  GitHub Actions (app-ecr.yml)  ─▶  ECR: b2b-sales-machine:sha-<sha>
-                                                                 │  (pull por DIGEST)
-                                 [ EC2 i-0f1ec133bb46a870d ]  ◀──┘
-                                  docker: b2b_sales_machine (:3001)
-                                    │ boot lê segredo do Secrets Manager (role da EC2)
-                                    ▼
-                              nginx host :443 (certbot)  ──▶  https://ita-challenge.autarke.ia.br
-```
+| Compose | `/opt/mindville/docker-compose.b2b-sales-machine.prod.yml` |
+| Container | `b2b_sales_machine` |
+| Imagem (ECR) | `131464424960.dkr.ecr.sa-east-1.amazonaws.com/b2b-sales-machine` |
+| Secret (SM) | `b2b-sales-machine/prod` → `DATABASE_URL`, `SESSION_SECRET` |
+| Health (local) | `curl -sS http://127.0.0.1:3001/api/v1/health` |
+| Health (HTTPS) | `curl -i https://ita-challenge.autarke.ia.br/api/v1/health` |
+| Logs | `sudo docker logs --since 10m b2b_sales_machine` |
 
 ---
 
-## Deploy de nova versão (passo a passo)
+## 🍰 Deploy de nova versão (a receita)
 
-### 1. Confirmar a imagem no ECR
+### 1) Merge do PR na `main` → espere o `app-ecr` ficar verde
 
-Todo push na `main` (ou tag `v*`) dispara o `app-ecr.yml`, que builda e empurra
-`b2b-sales-machine:sha-<commit-sha>`. Confirme (de uma máquina com AWS admin):
+O push na `main` builda e empurra a imagem pro ECR automaticamente (tag
+`sha-<commit>` + `vX.Y.Z` em release). Confira verde em **Actions → app-ecr**.
 
-```bash
-aws ecr describe-images --repository-name b2b-sales-machine --region sa-east-1 \
-  --query 'reverse(sort_by(imageDetails,&imagePushedAt))[].{tags:imageTags,pushed:imagePushedAt,digest:imageDigest}' \
-  --output table | head -20
-```
+### 2) Na caixa (SSM): login no ECR + suba a imagem nova
 
-Anote o **`imageDigest`** (`sha256:...`) alvo — ou copie da **UI do ECR**. Sempre
-deploy por digest (a tag `sha-<sha>` é única por commit, mas o pin canônico é o digest).
-
-### 2. Deploy na caixa (via SSM)
+Troque `TAG` pela nova (o `sha-<commit>` do merge, ou a `vX.Y.Z` do release). Cole
+**um comando por vez** no SSM.
 
 ```bash
-sudo AWS_REGION=sa-east-1 IMAGE_DIGEST=sha256:<digest> bash scripts/deploy-ec2.sh
+TAG=vX.Y.Z   # ou sha-<commit-completo>
+
+sudo aws ecr get-login-password --region sa-east-1 \
+  | sudo docker login --username AWS --password-stdin \
+    131464424960.dkr.ecr.sa-east-1.amazonaws.com
+
+sudo sed -i -E "s|(image:\s*).*|\1131464424960.dkr.ecr.sa-east-1.amazonaws.com/b2b-sales-machine:${TAG}|" \
+  /opt/mindville/docker-compose.b2b-sales-machine.prod.yml
+
+sudo docker compose -f /opt/mindville/docker-compose.b2b-sales-machine.prod.yml up -d --pull always
 ```
 
-> ⚠️ **Cole comandos multi-linha com cuidado no SSM** — um comentário `# ...` no fim de
-> uma linha pode "engolir" o comando seguinte se colarem juntos. Na dúvida, um por vez.
-
-Se preferir manual: edite a linha `image:` (só o que vem depois de `@sha256:`) em
-`/opt/mindville/docker-compose.b2b-sales-machine.prod.yml` e rode
-`sudo docker compose -f <arquivo> up -d --pull always`.
-
-### 3. Verificação (de fora)
+### 3) Verifique
 
 ```bash
-# HTTPS + validação de cert:
-curl -sS --resolve ita-challenge.autarke.ia.br:443:18.231.141.59 \
-  -o /dev/null -w "HTTPS %{http_code} | TLS %{ssl_verify_result} (0=OK)\n" \
-  https://ita-challenge.autarke.ia.br/api/v1/health
-# espera: HTTPS 200 | TLS 0 (0=OK)
-
-# redirect 80 -> 443:
-curl -sSI --resolve ita-challenge.autarke.ia.br:80:18.231.141.59 \
-  http://ita-challenge.autarke.ia.br/ | grep -iE '^HTTP|^location'
+curl -sS -o /dev/null -w "health %{http_code}\n" http://127.0.0.1:3001/api/v1/health   # 200
 ```
 
-No navegador: login com um `SEED_USERS` → cookie `allya_session` com `Secure` → base
-demo (120 empresas) → ranking 56 → exportar CSV.
+Pronto. Migrations só quando mudou algo em `prisma/migrations/` (ver §Migrations).
+
+> **Rollback:** repita o passo 2 com a `TAG` anterior. ~30s.
+>
+> **Sem espaço em disco** (`no space left`): `sudo docker image prune -f` e repita o
+> `up -d --pull always` (atualizar só o compose não recria o container).
 
 ---
 
-## Rollback
+## Primeira vez (setup — uma vez só)
 
-Reaponte pro digest anterior e suba de novo — ~30s:
+Faça na ordem. Detalhe e comandos AWS em **[`deploy/README.md`](../../deploy/README.md)**.
+
+### A) Criar o secret no Secrets Manager (pela UI)
+
+Console → **Secrets Manager** → *Store a new secret* (região **sa-east-1**):
+
+1. **Secret type:** *Other type of secret*.
+2. Aba **Plaintext**, cole o JSON (só estas duas chaves):
+   ```json
+   {
+     "DATABASE_URL": "postgresql://b2bsm_app:<SENHA-DO-APP>@mindville-db-dev.cjawcuqkc3br.sa-east-1.rds.amazonaws.com:5432/b2b_sales_machine_dev",
+     "SESSION_SECRET": "<gere: openssl rand -base64 48>"
+   }
+   ```
+   - `DATABASE_URL`: credencial do papel de **app** (`b2bsm_app`), a mesma do seu
+     `.env` local. **Não** use a credencial de owner aqui.
+   - `SESSION_SECRET`: gere um **novo** e forte; não reutilize o de dev.
+3. **Encryption key:** `aws/secretsmanager` (default).
+4. **Secret name:** `b2b-sales-machine/prod`. Rotation: desligada.
+
+> `APP_ORIGIN`, `TRUSTED_PROXY_DEPTH`, `AI_PROVIDER` **não** são segredo — já vão no
+> compose. Rotacionar depois: *Retrieve/Edit secret value* na UI + reiniciar o
+> container.
+
+### B) Dar à caixa permissão de ler o secret + puxar a imagem
+
+Uma vez, no CloudShell (admin) — JSONs versionados em `deploy/aws/`:
 
 ```bash
-sudo AWS_REGION=sa-east-1 IMAGE_DIGEST=sha256:<digest-anterior> bash scripts/deploy-ec2.sh
+aws iam put-role-policy --role-name EC2-SecretsManager-Role \
+  --policy-name secrets-read-b2b --policy-document file://deploy/aws/secrets-read-policy.json
+aws iam put-role-policy --role-name EC2-SecretsManager-Role \
+  --policy-name ecr-pull-b2b --policy-document file://deploy/aws/ecr-pull-policy.json
 ```
 
-O digest anterior está no histórico do ECR (passo 1) ou na linha `image:` do compose
-**antes** da troca.
+### C) IMDS hop-limit = 2 (container em bridge + IMDSv2)
+
+```bash
+aws ec2 describe-instance-metadata-options --instance-id i-0f1ec133bb46a870d \
+  --region sa-east-1 --query 'InstanceMetadataOptions.HttpPutResponseHopLimit'
+# se for 1: (afeta a caixa toda — benigno)
+aws ec2 modify-instance-metadata-options --instance-id i-0f1ec133bb46a870d \
+  --region sa-east-1 --http-tokens required --http-put-response-hop-limit 2
+```
+
+### D) Compose + nginx + TLS (na caixa)
+
+```bash
+# compose (cópia do versionado):
+curl -fsSL https://raw.githubusercontent.com/autarke-ia/b2b-sales-machine/main/deploy/compose/b2b-sales-machine.prod.yml \
+  | sudo tee /opt/mindville/docker-compose.b2b-sales-machine.prod.yml >/dev/null
+
+# nginx:
+curl -fsSL https://raw.githubusercontent.com/autarke-ia/b2b-sales-machine/main/deploy/nginx/ita-challenge.autarke.ia.br.conf \
+  | sudo tee /etc/nginx/sites-available/ita-challenge.autarke.ia.br >/dev/null
+sudo ln -s /etc/nginx/sites-available/ita-challenge.autarke.ia.br /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+
+# DNS já aponta (A ita-challenge → 18.231.141.59). TLS:
+sudo certbot --nginx -d ita-challenge.autarke.ia.br
+```
+
+### E) Primeiro deploy
+
+Rode a **receita** (§Deploy de nova versão) com a `TAG` da imagem já publicada.
 
 ---
 
-## Banco — migrations (da sua máquina, nunca do servidor)
+## Migrations (só quando `prisma/migrations/` mudou)
 
-**Demo Day (padrão):** o banco é o `b2b_sales_machine_dev` do RDS compartilhado, já
-semeado. Migration nova roda **do seu notebook** com a credencial de **owner** (que
-nunca vai para o EC2 nem para o SM de runtime):
+O banco é o `b2b_sales_machine_dev` do RDS compartilhado (Demo Day). Rode **do seu
+notebook** com a credencial de **owner** (que nunca vai pro EC2 nem pro SM):
 
 ```bash
 DATABASE_URL=<owner> pnpm exec prisma migrate deploy
 ```
 
-**Banco prod separado** (quando houver uso real): crie `b2b_sales_machine_prod` na
-mesma instância e, do notebook (NÃO rode `db:setup`/bootstrap — o papel `b2bsm_app` é
-compartilhado e o bootstrap faria `ALTER ROLE ... PASSWORD`, trocando a senha do dev):
-
-```bash
-DATABASE_URL=<owner-do-prod> pnpm exec prisma migrate deploy
-DATABASE_URL=<app-do-prod>  pnpm db:seed
-```
-
-Depois, aponte o `DATABASE_URL` do secret `b2b-sales-machine/prod` para o banco novo
-(`put-secret-value`) e reinicie o container.
+Banco prod separado: ver `deploy/README.md §7`.
 
 ---
 
 ## Troubleshooting
 
-| Sintoma | Causa provável | Ação |
+| Sintoma | Causa | Ação |
 |---|---|---|
-| `docker pull` → `403 Forbidden` | Pull do ECR não escopado a `b2b-sales-machine` | Confirmar a policy `ecr-pull-b2b` na `EC2-SecretsManager-Role` (`deploy/README.md` §3) |
-| `Could not assume role with OIDC` no CI | `sub` da org tem IDs imutáveis | `deploy/README.md` §"Gotcha OIDC" — a trust casa `repo:autarke-ia@310814087/b2b-sales-machine@1402425093:*` |
-| Container reinicia / log "Secrets Manager: falha ao buscar" | Role sem leitura do secret, ou IMDS hop-limit 1 | `deploy/README.md` §Secrets Manager + §Gotcha IMDS |
-| Container "Secrets Manager: sem as chaves obrigatórias" | Secret sem `DATABASE_URL`/`SESSION_SECRET` | Conferir o JSON: `aws secretsmanager get-secret-value --secret-id b2b-sales-machine/prod` |
-| `Found orphan containers (mindville_*)` | project name compartilhado | O compose tem `name: b2b-sales-machine`; se reaparecer, confirmar essa linha |
-| Cookie sem `Secure` no login | `APP_ORIGIN` não é https | Conferir `APP_ORIGIN=https://...` no compose e reiniciar |
-| Login não bloqueia por IP | `TRUSTED_PROXY_DEPTH` ausente | Deve ser `"1"` no compose (um nginx na frente) |
+| `docker pull` → `403` | pull do ECR não escopado ao b2b | policy `ecr-pull-b2b` na role (setup B) |
+| log `Secrets Manager: falha ao buscar` | role sem leitura do secret, ou IMDS hop-limit 1 | setup B + C |
+| log `sem as chaves obrigatórias` | secret sem `DATABASE_URL`/`SESSION_SECRET` | conferir o JSON do secret (UI) |
+| cookie sem `Secure` | `APP_ORIGIN` não é https | compose: `APP_ORIGIN=https://...` + restart |
+| `Found orphan containers (mindville_*)` | project name | o compose tem `name: b2b-sales-machine`; confirmar |
+| `Could not assume role with OIDC` no CI | `sub` da org com IDs | `deploy/README.md` §"Gotcha OIDC" |
 | DNS não resolve | registro A / propagação | `dig +short ita-challenge.autarke.ia.br` = `18.231.141.59` |
-
----
 
 ## Limites declarados
 
-- O deploy usa o **banco dev** da instância compartilhada até existir o prod separado.
-- A credencial do container (DML, sem DDL) edita valores; a autoria na trilha é do servidor.
-- `AI_PROVIDER=fixture`: interpretador determinístico, sem chave — trocar por provedor
-  real é evolução (o adaptador openai-compatible é stub).
+- Usa o **banco dev** compartilhado até existir um prod separado.
+- `AI_PROVIDER=fixture` (determinístico, sem chave) — provedor real é evolução.
 - `18.231.141.59` é IP **dinâmico** (não EIP): muda em stop/start e derruba DNS+TLS.
