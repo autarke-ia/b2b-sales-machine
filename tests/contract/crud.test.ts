@@ -208,7 +208,8 @@ describeIfDb("CRUD04 — arquivar/restaurar", () => {
     const blocked = await err(await call(patchRoute.PATCH, path(target.id), {
       method: "PATCH", body: { expected_version: archived.data.version, changes: { employees: 1 } }, session: ctx,
     }, params(target.id)));
-    expect([409, 422, 403]).toContain(blocked.status);
+    expect(blocked.status).toBe(409);
+    expect(blocked.code).toBe("VERSION_CONFLICT");
 
     const restore = await call(archiveRoute.POST, path(`${target.id}/archive`), {
       method: "POST", body: { archived: false, expected_version: archived.data.version }, session: ctx,
@@ -219,6 +220,30 @@ describeIfDb("CRUD04 — arquivar/restaurar", () => {
 
     const ops = await prisma.auditEvent.findMany({ where: { entity_id: target.id }, orderBy: { occurred_at: "asc" } });
     expect(ops.some((e) => e.operation === "update" && (e.changed_fields as string[])?.includes("archived_at"))).toBe(true);
+  });
+});
+
+describeIfDb("CRUD02b — corrida paralela REAL (P1 do finder)", () => {
+  test("dois PATCHs concorrentes com a mesma expected_version: um 200, um 409, versão +1, UM evento", async () => {
+    const cur = await prisma.company.findUniqueOrThrow({ where: { id: target.id } });
+    const eventsBefore = await prisma.auditEvent.count({ where: { entity_id: target.id } });
+    const [a, b] = await Promise.allSettled([
+      call(patchRoute.PATCH, path(target.id), {
+        method: "PATCH",
+        body: { expected_version: cur.version, changes: { segment: `Corrida A ${crypto.randomUUID().slice(0, 6)}` } },
+        session: ctx,
+      }, params(target.id)),
+      call(patchRoute.PATCH, path(target.id), {
+        method: "PATCH",
+        body: { expected_version: cur.version, changes: { segment: `Corrida B ${crypto.randomUUID().slice(0, 6)}` } },
+        session: ctx,
+      }, params(target.id)),
+    ]);
+    const statuses = [a, b].map((r) => (r.status === "fulfilled" ? r.value.status : `erro:${r.reason?.code ?? "INTERNAL"}`)).sort();
+    expect(statuses).toEqual([200, 409]);
+    const after = await prisma.company.findUniqueOrThrow({ where: { id: target.id } });
+    expect(after.version).toBe(cur.version + 1);
+    expect(await prisma.auditEvent.count({ where: { entity_id: target.id } })).toBe(eventsBefore + 1);
   });
 });
 

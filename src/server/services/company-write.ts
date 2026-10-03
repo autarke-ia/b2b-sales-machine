@@ -49,16 +49,29 @@ export async function patchCompany(
       });
     }
 
-    const updated = await tx.company.update({
-      where: { id: recordId, dataset_id: dataset.id, version: expectedVersion },
-      data: {
-        ...clean,
-        version: { increment: 1 },
-        input_revision: { increment: 1 },
-        updated_at: new Date(),
-        updated_by: mctx.userId,
-      },
-    });
+    const updated = await tx.company
+      .update({
+        where: { id: recordId, dataset_id: dataset.id, version: expectedVersion },
+        data: {
+          ...clean,
+          version: { increment: 1 },
+          input_revision: { increment: 1 },
+          updated_at: new Date(),
+          updated_by: mctx.userId,
+        },
+      })
+      .catch(async (e) => {
+        // Corrida REAL (dois PATCHs com a mesma expected_version): a guarda de
+        // versão vive no UPDATE; 0 linhas (P2025) é conflito, nunca 500.
+        if ((e as { code?: string }).code === "P2025") {
+          const now = await tx.company.findUnique({ where: { id: recordId }, select: { version: true } });
+          throw conflict("VERSION_CONFLICT", "O registro mudou. Atualize os dados antes de salvar.", {
+            expected_version: expectedVersion,
+            current_version: now?.version ?? expectedVersion + 1,
+          });
+        }
+        throw e;
+      });
     await tx.dataset.update({
       where: { id: dataset.id },
       data: { data_revision: { increment: 1 }, version: { increment: 1 }, updated_at: new Date(), updated_by: mctx.userId },
@@ -79,22 +92,38 @@ export async function archiveCompany(
     await setActorContext(tx, { actor_user_id: mctx.userId, source: "manual", request_id: mctx.requestId });
     const current = await tx.company.findUnique({ where: { id: recordId } });
     if (!current || current.dataset_id !== dataset.id) throw notFound("Empresa não encontrada nesta base.");
+    // No-op simétrico ao PATCH: re-arquivar arquivada (ou restaurar ativa) não
+    // fabrica versão nem evento.
+    if (archived === Boolean(current.archived_at)) return current;
     if (current.version !== expectedVersion) {
       throw conflict("VERSION_CONFLICT", "O registro mudou. Atualize os dados antes de arquivar.", {
         expected_version: expectedVersion,
         current_version: current.version,
       });
     }
-    const updated = await tx.company.update({
-      where: { id: recordId },
-      data: {
-        archived_at: archived ? new Date() : null,
-        version: { increment: 1 },
-        input_revision: { increment: 1 },
-        updated_at: new Date(),
-        updated_by: mctx.userId,
-      },
-    });
+    const updated = await tx.company
+      .update({
+        // Guarda de versão no UPDATE (assimétrico ao PATCH seria bypass:
+        // PATCH(v1)×ARCHIVE(v1) concorrentes).
+        where: { id: recordId, dataset_id: dataset.id, version: expectedVersion },
+        data: {
+          archived_at: archived ? new Date() : null,
+          version: { increment: 1 },
+          input_revision: { increment: 1 },
+          updated_at: new Date(),
+          updated_by: mctx.userId,
+        },
+      })
+      .catch(async (e) => {
+        if ((e as { code?: string }).code === "P2025") {
+          const now = await tx.company.findUnique({ where: { id: recordId }, select: { version: true } });
+          throw conflict("VERSION_CONFLICT", "O registro mudou. Atualize os dados antes de arquivar.", {
+            expected_version: expectedVersion,
+            current_version: now?.version ?? expectedVersion + 1,
+          });
+        }
+        throw e;
+      });
     await tx.dataset.update({
       where: { id: dataset.id },
       data: { data_revision: { increment: 1 }, version: { increment: 1 }, updated_at: new Date(), updated_by: mctx.userId },

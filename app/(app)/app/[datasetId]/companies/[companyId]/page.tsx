@@ -102,6 +102,7 @@ export default function CompanyDetailPage() {
   const [saved, setSaved] = useState(false);
   const [history, setHistory] = useState<HistoryRow[] | null>(null);
   const [historyField, setHistoryField] = useState("");
+  const [archiving, setArchiving] = useState(false);
 
   const load = useCallback(() => {
     setError(null);
@@ -135,6 +136,11 @@ export default function CompanyDetailPage() {
       }
     }
     if (Object.keys(changes).length === 0) {
+      setSaving(false);
+      return;
+    }
+    if (changes.name === null) {
+      setError("Nome não pode ficar vazio — é um campo obrigatório.");
       setSaving(false);
       return;
     }
@@ -195,6 +201,26 @@ export default function CompanyDetailPage() {
         <div className="flex flex-col items-end gap-1">
           <GateBadge state={detail.assessment.gate.state} />
           {saved ? <span className="text-[var(--text-2xs)] text-ok-fg">Alteração salva e recalculada.</span> : null}
+          <Button
+            variant={detail.archived_at ? "secondary" : "danger"}
+            disabled={archiving}
+            onClick={async () => {
+              setArchiving(true);
+              try {
+                await api(`/datasets/${datasetId}/companies/${companyId}/archive`, {
+                  method: "POST",
+                  body: { archived: !detail.archived_at, expected_version: detail.version },
+                });
+                load();
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setArchiving(false);
+              }
+            }}
+          >
+            {archiving ? "Processando…" : detail.archived_at ? "Restaurar empresa" : "Arquivar empresa"}
+          </Button>
         </div>
       </header>
 
@@ -215,7 +241,7 @@ export default function CompanyDetailPage() {
             {saving ? "Salvando…" : "Salvar alterações"}
           </Button>
         </header>
-        <div className="grid gap-3 px-4 py-4 sm:grid-cols-2 lg:grid-cols-3">
+        <fieldset className="grid gap-3 px-4 py-4 sm:grid-cols-2 lg:grid-cols-3" disabled={saving}>
           <label className="block space-y-1">
             <span className="text-[var(--text-xs)] text-muted">Nome</span>
             <Input value={draft.name} onChange={set("name")} aria-label="Nome" />
@@ -262,7 +288,7 @@ export default function CompanyDetailPage() {
               {RENEWALS.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}
             </Select>
           </label>
-        </div>
+        </fieldset>
       </section>
 
       <section aria-label="Sinais" className="border border-line bg-panel">

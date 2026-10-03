@@ -63,6 +63,11 @@ test("edição recalcula e conflito entre duas sessões é honesto", async ({ br
   await pageA.getByLabel("Filtrar histórico por campo").selectOption("hr_structured");
   await expect(pageA.getByRole("region", { name: "Histórico" })).toContainText("hr_structured");
 
+  // Devolve o estado (banco dev compartilhado): B reverte o flip do RH.
+  await rhSelect.selectOption(currentB);
+  await pageB.getByRole("button", { name: "Salvar alterações" }).click();
+  await expect(pageB.getByText("Alteração salva e recalculada.")).toBeVisible();
+
   await ctxA.close();
   await ctxB.close();
 });

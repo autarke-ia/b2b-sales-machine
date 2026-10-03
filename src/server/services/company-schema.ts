@@ -5,7 +5,7 @@ import { z } from "zod";
 export const patchChangesSchema = z
   .object({
     name: z.string().trim().min(1).max(240).optional(),
-    domain: z.string().trim().toLowerCase().regex(/^[a-z0-9.-]+\.[a-z]{2,}$/, "domínio sem protocolo/caminho").max(253).nullish(),
+    domain: z.string().trim().toLowerCase().regex(/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/, "domínio inválido (rótulos sem hífens nas pontas)").max(253).nullish(),
     segment: z.string().trim().min(1).max(120).nullish(),
     employees: z.number().int().min(0).nullish(),
     uf: z.enum(["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"]).nullish(),
