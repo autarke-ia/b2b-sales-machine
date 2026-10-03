@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.0](https://github.com/autarke-ia/b2b-sales-machine/compare/v0.2.2...v0.3.0) (2026-10-03)
+
+
+### Features
+
+* **deploy:** deploy via ECR→EC2 por digest + segredos no AWS Secrets Manager ([#16](https://github.com/autarke-ia/b2b-sales-machine/issues/16)) ([223616f](https://github.com/autarke-ia/b2b-sales-machine/commit/223616f03bef09769d9d3ca285caf5ea0a368298))
+
+
+### Bug Fixes
+
+* **deploy:** secret renomeado para autarkeia/b2b-sales-machine/dev ([#18](https://github.com/autarke-ia/b2b-sales-machine/issues/18)) ([342b309](https://github.com/autarke-ia/b2b-sales-machine/commit/342b3097ac33e72f92125e91363c1579f626f131))
+
+
+### Documentation
+
+* **runbooks:** deploy como receita de bolo (quick deploy + secret pela UI) ([#17](https://github.com/autarke-ia/b2b-sales-machine/issues/17)) ([0548b33](https://github.com/autarke-ia/b2b-sales-machine/commit/0548b33a6dfc4b4471f8a7ede1a0c23df7bccec7))
+
 ## [0.2.2](https://github.com/autarke-ia/b2b-sales-machine/compare/v0.2.1...v0.2.2) (2026-10-03)
 
 
