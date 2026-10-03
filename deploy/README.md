@@ -30,7 +30,7 @@ A paridade é no **pipeline e na operação**, não no interior do container.
 | Repo ECR | `b2b-sales-machine` (imagem pinada por **digest**) |
 | Role OIDC (push no CI) | `b2b-sales-machine-github-oidc-ecr` |
 | Pull do ECR (na caixa) | role `EC2-SecretsManager-Role` + policy inline `ecr-pull-b2b` |
-| Secret (runtime) | `b2b-sales-machine/prod` (SM) → `DATABASE_URL`, `SESSION_SECRET` |
+| Secret (runtime) | `autarkeia/b2b-sales-machine/dev` (SM) → `DATABASE_URL`, `SESSION_SECRET` |
 | Leitura do secret | role `EC2-SecretsManager-Role` + policy `secretsmanager:GetSecretValue` escopada |
 | Compose (caixa) | `/opt/mindville/docker-compose.b2b-sales-machine.prod.yml` · project `b2b-sales-machine` |
 | Container | `b2b_sales_machine` · `127.0.0.1:3001->3000` |
@@ -141,7 +141,7 @@ openssl rand -base64 48
 # 4b. Crie o secret (JSON). A DATABASE_URL é a do papel de APP (b2bsm_app), não a
 #     de owner. Passe os valores por arquivo temporário fora do histórico, ou via
 #     --secret-string com cuidado para não vazar no shell history.
-aws secretsmanager create-secret --name b2b-sales-machine/prod --region sa-east-1 \
+aws secretsmanager create-secret --name autarkeia/b2b-sales-machine/dev --region sa-east-1 \
   --secret-string '{"DATABASE_URL":"postgresql://b2bsm_app:<senha>@mindville-db-dev.cjawcuqkc3br.sa-east-1.rds.amazonaws.com:5432/b2b_sales_machine_dev","SESSION_SECRET":"<openssl-acima>"}'
 
 # 4c. Deixe a role da EC2 ler ESTE secret (escopado):
@@ -149,7 +149,7 @@ aws iam put-role-policy --role-name EC2-SecretsManager-Role \
   --policy-name secrets-read-b2b --policy-document file://deploy/aws/secrets-read-policy.json
 ```
 
-> Rotação: `aws secretsmanager put-secret-value --secret-id b2b-sales-machine/prod
+> Rotação: `aws secretsmanager put-secret-value --secret-id autarkeia/b2b-sales-machine/dev
 > --secret-string '{...}'` e reinicie o container. Trocar a senha do banco é rotação
 > **na origem** (par de `rotate-means-revoke-at-provider`).
 

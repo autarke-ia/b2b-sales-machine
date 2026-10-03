@@ -13,7 +13,7 @@ busca `DATABASE_URL`/`SESSION_SECRET` no boot. Setup completo e porquês em
 | Compose | `/opt/mindville/docker-compose.b2b-sales-machine.prod.yml` |
 | Container | `b2b_sales_machine` |
 | Imagem (ECR) | `131464424960.dkr.ecr.sa-east-1.amazonaws.com/b2b-sales-machine` |
-| Secret (SM) | `b2b-sales-machine/prod` → `DATABASE_URL`, `SESSION_SECRET` |
+| Secret (SM) | `autarkeia/b2b-sales-machine/dev` → `DATABASE_URL`, `SESSION_SECRET` |
 | Health (local) | `curl -sS http://127.0.0.1:3001/api/v1/health` |
 | Health (HTTPS) | `curl -i https://ita-challenge.autarke.ia.br/api/v1/health` |
 | Logs | `sudo docker logs --since 10m b2b_sales_machine` |
@@ -80,7 +80,7 @@ Console → **Secrets Manager** → *Store a new secret* (região **sa-east-1**)
      `.env` local. **Não** use a credencial de owner aqui.
    - `SESSION_SECRET`: gere um **novo** e forte; não reutilize o de dev.
 3. **Encryption key:** `aws/secretsmanager` (default).
-4. **Secret name:** `b2b-sales-machine/prod`. Rotation: desligada.
+4. **Secret name:** `autarkeia/b2b-sales-machine/dev`. Rotation: desligada.
 
 > `APP_ORIGIN`, `TRUSTED_PROXY_DEPTH`, `AI_PROVIDER` **não** são segredo — já vão no
 > compose. Rotacionar depois: *Retrieve/Edit secret value* na UI + reiniciar o
