@@ -20,5 +20,8 @@ Registro de capacidades reutilizáveis do projeto. Classificar com evidência de
 | Normalização de importação pura (doc 01 §5) | produção — usada pelo pipeline de imports | tests/domain/normalize.test.ts | Fase 3-A |
 | Regras versionadas (rascunho→publicação c/ linhagem) | produção — /ruleset, /rulesets/drafts, /publish (RULESET_CONFLICT), /history; UI /rules | tests/contract/related-rules.test.ts (RULE01-04) | Fase 3-B |
 | CRUD relacionados versionados (signals/contacts/opportunities) | produção — coleção+item+archive+history por entidade; bloqueio c/ pai arquivado | tests/contract/related-rules.test.ts (CRUD análogos + CRUD05) | Fase 3-B |
-| IA: jobs duráveis + adaptador + revisão transacional | ausente — Fase 4 | — | — |
-| Métricas/cronômetro do experimento | ausente — Fase 4 | — | — |
+| Jobs de análise duráveis (fila SKIP LOCKED, scopes, retry) | produção — POST/GET /analysis-jobs + /retry; contadores reconciliados dos estados persistidos | tests/contract/ai-review-metrics.test.ts (AI06-08) | Fase 4 |
+| Adaptador de IA (fixture determinístico + validações doc 06) | produção — heurísticas com quote literal, relação recalculada server-side, provider openai stub explícito sem chave | AI01-05; INV-10 | Fase 4 |
+| Revisão transacional c/ staleness campo-a-campo | produção — /suggestions/{id}/decision; accept aplica c/ source=ai_acceptance; stale persistido em tx própria | REV01-07 | Fase 4 |
+| Cronômetro server-side + métricas + CSV | produção — /review-sessions(+events), /metrics(.csv); amostra válida exclui interrupted/abandoned | MET01-06 | Fase 4 |
+| UI IA: analisar/sugestões/cronômetro + métricas | produção — painel no detalhe com can_accept honesto e trecho citado; tela /metrics | e2e jornada 4 | Fase 4 |

@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { Button, ErrorState, Input, Loading, Select } from "@/components/ui/primitives";
 import { GateBadge } from "@/components/badges";
 import { Decomposition, type AssessmentView } from "@/components/decomposition";
+import { AiReviewPanel } from "@/components/ai-review-panel";
 
 interface CompanyDetailDto {
   id: string;
@@ -28,6 +29,7 @@ interface CompanyDetailDto {
   operating_status: "active" | "inactive" | "unknown";
   source_label: string | null;
   version: number;
+  input_revision: number;
   archived_at: string | null;
   assessment: AssessmentView & { id: string; as_of: string };
   signals: Array<{ id: string; signal_type: string; evidence_text: string; strength: string; observed_on: string | null; source_allowed: boolean | null }>;
@@ -233,6 +235,15 @@ export default function CompanyDetailPage() {
       ) : null}
 
       <Decomposition assessment={detail.assessment} />
+
+      <AiReviewPanel
+        datasetId={datasetId}
+        companyId={companyId}
+        gateState={detail.assessment.gate.state}
+        companyVersion={detail.version}
+        inputRevision={detail.input_revision}
+        onChanged={load}
+      />
 
       <section aria-label="Cadastro" className="border border-line bg-panel">
         <header className="flex items-center justify-between border-b border-line px-4 py-2">
