@@ -104,7 +104,7 @@ jobs:
       # rodar aqui é gate furado, não "verde de sorte".
       - name: Guard — nenhum arquivo describeIfDb fora do alcance deste job
         run: |
-          EXPECTED="tests/contract/api.test.ts tests/contract/auth.test.ts tests/contract/crud.test.ts tests/contract/db-audit.test.ts tests/contract/imports.test.ts tests/contract/seed.test.ts"
+          EXPECTED="tests/contract/api.test.ts tests/contract/auth.test.ts tests/contract/crud.test.ts tests/contract/db-audit.test.ts tests/contract/imports.test.ts tests/contract/related-rules.test.ts tests/contract/seed.test.ts"
           ACTUAL=$(grep -rl "describeIfDb" tests/ 2>/dev/null | grep -v "tests/helpers/" | sort | tr '\n' ' ' | sed 's/ $//' || true)
           EXPECTED_SORTED=$(echo "$EXPECTED" | tr ' ' '\n' | sort | tr '\n' ' ' | sed 's/ $//')
           if [ "$ACTUAL" != "$EXPECTED_SORTED" ]; then

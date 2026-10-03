@@ -16,7 +16,9 @@ Registro de capacidades reutilizáveis do projeto. Classificar com evidência de
 | CRUD company: PATCH versionado + 409 + no-op + archive/restore | produção — rotas PATCH/archive em /datasets/{id}/companies/{record_id}; UI de edição consumindo | tests/contract/crud.test.ts 12/12 (CRUD01-05, AUD01/05, DATA02) | Fase 2 |
 | Detalhe com avaliação individual + sinais/contatos | produção — GET {record_id} (assessment pela cache key ou computa); UI /app/:id/companies/:id | crud.test.ts (detalhe) + e2e jornada 2 | Fase 2 |
 | Histórico append-only por campo (before/after) | produção — GET {record_id}/history?field= ; UI com filtro | AUD05 (reversões consultáveis) | Fase 2 |
-| Importação CSV/XLSX com prévia→commit | ausente — Fase 3 (recorte D2: CSVs) | — | — |
-| Regras versionadas (rascunho→publicação) | ausente — Fase 3 | — | — |
+| Importação CSV com prévia→commit atômico (7 targets) | produção — POST /imports + commit + GET; UI ImportPanel | tests/contract/imports.test.ts (IMP02-10+overwrite+concorrência) | Fase 3-A |
+| Normalização de importação pura (doc 01 §5) | produção — usada pelo pipeline de imports | tests/domain/normalize.test.ts | Fase 3-A |
+| Regras versionadas (rascunho→publicação c/ linhagem) | produção — /ruleset, /rulesets/drafts, /publish (RULESET_CONFLICT), /history; UI /rules | tests/contract/related-rules.test.ts (RULE01-04) | Fase 3-B |
+| CRUD relacionados versionados (signals/contacts/opportunities) | produção — coleção+item+archive+history por entidade; bloqueio c/ pai arquivado | tests/contract/related-rules.test.ts (CRUD análogos + CRUD05) | Fase 3-B |
 | IA: jobs duráveis + adaptador + revisão transacional | ausente — Fase 4 | — | — |
 | Métricas/cronômetro do experimento | ausente — Fase 4 | — | — |
