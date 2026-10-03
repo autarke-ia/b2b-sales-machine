@@ -3,10 +3,9 @@
  * sem DATABASE_URL, é pulada.
  */
 import { describe, expect, test } from "vitest";
+import { describeIfDb } from "../helpers/db";
 import { PrismaClient } from "@prisma/client";
 
-const appUrl = process.env.DATABASE_URL;
-const describeIfDb = appUrl ? describe : describe.skip;
 
 const TECHNICAL_ACTOR_ID = "3ae34d02-69bc-5ec2-ba0a-c4122d3bb5c9";
 

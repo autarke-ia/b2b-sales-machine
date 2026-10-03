@@ -3,10 +3,9 @@
  * sem DATABASE_URL, a suíte é pulada (fundação não depende de rede para typecheck/lint).
  */
 import { describe, expect, test } from "vitest";
+import { describeIfDb } from "../helpers/db";
 import { PrismaClient } from "@prisma/client";
 
-const appUrl = process.env.DATABASE_URL;
-const describeIfDb = appUrl ? describe : describe.skip;
 
 describeIfDb("Trilha append-only e privilégios", () => {
   const prisma = new PrismaClient();

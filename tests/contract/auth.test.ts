@@ -3,6 +3,7 @@
  * Executa contra o banco dev real; usuários vêm de SEED_USERS (.env).
  */
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { describeIfDb } from "../helpers/db";
 import * as loginRoute from "../../app/api/v1/auth/login/route";
 import * as sessionRoute from "../../app/api/v1/auth/session/route";
 import * as logoutRoute from "../../app/api/v1/auth/logout/route";
@@ -21,7 +22,7 @@ afterAll(async () => {
   await prisma.$disconnect();
 });
 
-describe("AUTH01 — login individual", () => {
+describeIfDb("AUTH01 — login individual", () => {
   test("credenciais corretas geram sessão com csrf e cookie HttpOnly", async () => {
     const u = firstSeedUser();
     const res = await call(loginRoute.POST, "/auth/login", { method: "POST", body: u });
@@ -52,7 +53,7 @@ describe("AUTH01 — login individual", () => {
   });
 });
 
-describe("AUTH01b — recuperação de sessão", () => {
+describeIfDb("AUTH01b — recuperação de sessão", () => {
   test("GET /auth/session com cookie devolve usuário e csrf", async () => {
     const res = await call(sessionRoute.GET, "/auth/session", { session: ctx });
     expect(res.status).toBe(200);
@@ -68,7 +69,7 @@ describe("AUTH01b — recuperação de sessão", () => {
   });
 });
 
-describe("AUTH03 — CSRF e Origin", () => {
+describeIfDb("AUTH03 — CSRF e Origin", () => {
   test("logout sem X-CSRF-Token é 403 CSRF_INVALID e não revoga", async () => {
     const r = await err(await call(logoutRoute.POST, "/auth/logout", { method: "POST", session: ctx, csrf: null }));
     expect(r.status).toBe(403);
@@ -92,7 +93,7 @@ describe("AUTH03 — CSRF e Origin", () => {
   });
 });
 
-describe("AUTH02 — logout revoga a sessão", () => {
+describeIfDb("AUTH02 — logout revoga a sessão", () => {
   test("logout 204; sessão seguinte é 401 UNAUTHENTICATED (revogada) e cookie é limpo", async () => {
     const res = await call(logoutRoute.POST, "/auth/logout", { method: "POST", session: ctx });
     expect(res.status).toBe(204);
@@ -104,7 +105,7 @@ describe("AUTH02 — logout revoga a sessão", () => {
   });
 });
 
-describe("AUTH02b — sessão expirada de verdade", () => {
+describeIfDb("AUTH02b — sessão expirada de verdade", () => {
   test("cookie de sessão com expires_at no passado responde SESSION_EXPIRED", async () => {
     const fresh = await login(loginRoute.POST);
     const tokenHashCookie = fresh.cookie;
@@ -121,7 +122,7 @@ describe("AUTH02b — sessão expirada de verdade", () => {
   });
 });
 
-describe("AUTH04 — limite de tentativas", () => {
+describeIfDb("AUTH04 — limite de tentativas", () => {
   test("6ª tentativa falha com 429 RATE_LIMITED e Retry-After; conta por (e-mail, IP)", async () => {
     const email = `ratelimit-${crypto.randomUUID()}@invalid.test`;
     let last: Response | undefined;

@@ -3,6 +3,7 @@
  * (filtros, paginação, golden do gate) e ranking (snapshots, INV-5/6/7/8, CSV).
  */
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { describeIfDb } from "../helpers/db";
 import * as schemaRoute from "../../app/api/v1/schema/route";
 import * as datasetsRoute from "../../app/api/v1/datasets/route";
 import * as datasetDetailRoute from "../../app/api/v1/datasets/[dataset_id]/route";
@@ -49,7 +50,7 @@ afterAll(async () => {
 const demo = (path = "") => `/datasets/${DEMO_DATASET.id}${path}`;
 const ds = (id: string, path = "") => `/datasets/${id}${path}`;
 
-describe("/schema", () => {
+describeIfDb("/schema", () => {
   test("requer sessão e devolve o catálogo de campos do contrato", async () => {
     const denied = await err(await call(schemaRoute.GET, "/schema", {}));
     expect(denied.status).toBe(401);
@@ -64,7 +65,7 @@ describe("/schema", () => {
   });
 });
 
-describe("/datasets", () => {
+describeIfDb("/datasets", () => {
   test("lista bases compartilhadas; demo presente com as_of 2026-09-30", async () => {
     const res = await call(datasetsRoute.GET, "/datasets", { session: ctx });
     const body = await ok<Array<{ id: string; kind: string; default_as_of: string }>>(res);
@@ -143,7 +144,7 @@ describe("/datasets", () => {
   });
 });
 
-describe("/companies — filtros, paginação e golden do gate", () => {
+describeIfDb("/companies — filtros, paginação e golden do gate", () => {
   test("golden: icp_state=in|out|pending retorna 56|37|27 sob os defaults", async () => {
     for (const [state, expected] of [["in", 56], ["out", 37], ["pending", 27]] as const) {
       const res = await call(companiesRoute.GET, demo(`/companies?icp_state=${state}`), { session: ctx }, { dataset_id: DEMO_DATASET.id });
@@ -183,7 +184,7 @@ describe("/companies — filtros, paginação e golden do gate", () => {
   });
 });
 
-describe("/ranking — snapshots determinísticos (INV-5/6/7/8)", () => {
+describeIfDb("/ranking — snapshots determinísticos (INV-5/6/7/8)", () => {
   test("somente empresas 'in' ranqueadas; total 56; meta completa; INV-5 em cada linha", async () => {
     const res = await call(rankingRoute.GET, demo("/ranking"), { session: ctx }, { dataset_id: DEMO_DATASET.id });
     const body = await ok<Array<{ rank: number; assessment: { gate: { state: string; in_icp: boolean | null }; priority: { score: number } | null } }>>(res);
@@ -291,7 +292,7 @@ describe("/ranking — snapshots determinísticos (INV-5/6/7/8)", () => {
   });
 });
 
-describe("/ranking.csv — exportação congelada", () => {
+describeIfDb("/ranking.csv — exportação congelada", () => {
   test("CSV do snapshot com BOM, cabeçalho fixo e todas as 56 linhas", async () => {
     const all = await call(rankingRoute.GET, demo("/ranking"), { session: ctx }, { dataset_id: DEMO_DATASET.id });
     const snapshotId = ((await all.json()) as { meta: { snapshot_id: string } }).meta.snapshot_id;
