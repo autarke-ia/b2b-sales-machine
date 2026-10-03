@@ -29,7 +29,7 @@ services:
       # Secrets Manager via a role da instância — nunca aqui.
       NODE_ENV: production
       AWS_REGION: sa-east-1
-      AWS_SECRET_NAME: b2b-sales-machine/prod
+      AWS_SECRET_NAME: autarkeia/b2b-sales-machine/dev
       # https:// liga o flag Secure do cookie e valida o Origin das mutações.
       APP_ORIGIN: https://ita-challenge.autarke.ia.br
       # 1 proxy confiável (este nginx): o app lê o ÚLTIMO hop do XFF.
