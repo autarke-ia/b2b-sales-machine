@@ -29,17 +29,18 @@ O push na `main` builda e empurra a imagem pro ECR automaticamente (tag
 
 ### 2) Na caixa (SSM): login no ECR + suba a imagem nova
 
-Troque `TAG` pela nova (o `sha-<commit>` do merge, ou a `vX.Y.Z` do release). Cole
-**um comando por vez** no SSM.
+Copie o **digest** da imagem nova (console do ECR → repo `b2b-sales-machine` →
+coluna *Image URI* / *Digest*). Pin por **digest** (não tag flutuante), igual aos
+irmãos. Cole **um comando por vez** no SSM.
 
 ```bash
-TAG=vX.Y.Z   # ou sha-<commit-completo>
+DIGEST=sha256:<cole-o-digest-do-ECR>
 
 sudo aws ecr get-login-password --region sa-east-1 \
   | sudo docker login --username AWS --password-stdin \
     131464424960.dkr.ecr.sa-east-1.amazonaws.com
 
-sudo sed -i -E "s|(image:\s*).*|\1131464424960.dkr.ecr.sa-east-1.amazonaws.com/b2b-sales-machine:${TAG}|" \
+sudo sed -i -E "s|(image:\s*).*|\1131464424960.dkr.ecr.sa-east-1.amazonaws.com/b2b-sales-machine@${DIGEST}|" \
   /opt/mindville/docker-compose.b2b-sales-machine.prod.yml
 
 sudo docker compose -f /opt/mindville/docker-compose.b2b-sales-machine.prod.yml up -d --pull always
@@ -53,7 +54,7 @@ curl -sS -o /dev/null -w "health %{http_code}\n" http://127.0.0.1:3001/api/v1/he
 
 Pronto. Migrations só quando mudou algo em `prisma/migrations/` (ver §Migrations).
 
-> **Rollback:** repita o passo 2 com a `TAG` anterior. ~30s.
+> **Rollback:** repita o passo 2 com o `DIGEST` anterior. ~30s.
 >
 > **Sem espaço em disco** (`no space left`): `sudo docker image prune -f` e repita o
 > `up -d --pull always` (atualizar só o compose não recria o container).
@@ -126,7 +127,7 @@ sudo certbot --nginx -d ita-challenge.autarke.ia.br
 
 ### E) Primeiro deploy
 
-Rode a **receita** (§Deploy de nova versão) com a `TAG` da imagem já publicada.
+Rode a **receita** (§Deploy de nova versão) com o `DIGEST` da imagem já publicada.
 
 ---
 
