@@ -7,6 +7,7 @@ import { api, apiPagination } from "@/lib/api";
 import { EmptyState, ErrorState, Input, Loading, Select } from "@/components/ui/primitives";
 import { GateBadge } from "@/components/badges";
 import { Pager } from "@/components/pager";
+import { ImportPanel } from "@/components/import-panel";
 
 interface CompanyRow {
   id: string;
@@ -100,6 +101,8 @@ export default function CompaniesPage() {
           ver arquivadas
         </label>
       </form>
+
+      <div className="mt-4"><ImportPanel datasetId={datasetId} onCommitted={() => { setPage(1); load(); }} /></div>
 
       {error ? <div className="mt-4"><ErrorState message={error} onRetry={load} /></div> : null}
       {!state && !error ? <Loading /> : null}
