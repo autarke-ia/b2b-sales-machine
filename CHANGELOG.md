@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/autarke-ia/b2b-sales-machine/compare/v0.2.0...v0.2.1) (2026-10-03)
+
+
+### Documentation
+
+* **runbooks:** como rodar e testar a plataforma ([#10](https://github.com/autarke-ia/b2b-sales-machine/issues/10)) ([d9fd7a4](https://github.com/autarke-ia/b2b-sales-machine/commit/d9fd7a42b6ede732e36532947add8650c9941d50))
+
 ## [0.2.0](https://github.com/autarke-ia/b2b-sales-machine/compare/v0.1.0...v0.2.0) (2026-10-03)
 
 
