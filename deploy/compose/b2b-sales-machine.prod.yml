@@ -1,0 +1,50 @@
+# Roda o protótipo B2B Sales Machine no EC2 a partir da imagem publicada no ECR.
+# Mesmo padrão do autarkeia-website: imagem PINADA POR DIGEST (nunca tag
+# flutuante). Diferenças do website: aqui é um SERVIDOR Next (`next start`, :3000
+# interno), e há SEGREDO em runtime — que vem do AWS Secrets Manager, NÃO de
+# arquivo (política secrets-config). O container não recebe segredo em env/arquivo:
+# ele herda a role da instância (EC2-SecretsManager-Role) e o loader de boot
+# (instrumentation.ts → src/server/config/secrets.ts) busca o secret no SM.
+#
+# Local na caixa: /opt/mindville/docker-compose.b2b-sales-machine.prod.yml
+# Deploy: scripts/deploy-ec2.sh (ou o passo manual no deploy/README.md).
+#
+# `name:` dá um PROJETO Compose próprio a este stack. Sem ele, os compose em
+# /opt/mindville/ herdam o project name `mindville` (basename da pasta) e se
+# enxergam como "orphan containers" — um `--remove-orphans` apagaria os do
+# Mindville. O namespace próprio fecha esse footgun.
+name: b2b-sales-machine
+
+services:
+  b2b-sales-machine:
+    image: 131464424960.dkr.ecr.sa-east-1.amazonaws.com/b2b-sales-machine@sha256:REPLACE_WITH_DIGEST
+    container_name: b2b_sales_machine
+    restart: unless-stopped
+    ports:
+      # Só localhost: o nginx do HOST faz o proxy + TLS. 3001 = porta do host
+      # (3000 já é do mindville_web; 3080/4000/8081 também ocupadas).
+      - "127.0.0.1:3001:3000"
+    environment:
+      # Bootstrap NÃO-secreto. O segredo (DATABASE_URL, SESSION_SECRET) vem do
+      # Secrets Manager via a role da instância — nunca aqui.
+      NODE_ENV: production
+      AWS_REGION: sa-east-1
+      AWS_SECRET_NAME: b2b-sales-machine/prod
+      # https:// liga o flag Secure do cookie e valida o Origin das mutações.
+      APP_ORIGIN: https://ita-challenge.autarke.ia.br
+      # 1 proxy confiável (este nginx): o app lê o ÚLTIMO hop do XFF.
+      TRUSTED_PROXY_DEPTH: "1"
+      AI_PROVIDER: fixture
+    healthcheck:
+      # node (sempre presente na imagem) em vez de wget/curl (podem faltar no slim).
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3000/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s

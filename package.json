@@ -24,6 +24,7 @@
     "test:all": "pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm e2e"
   },
   "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.1146.0",
     "@node-rs/argon2": "2.2.1",
     "@prisma/client": "6.3.1",
     "@tanstack/react-table": "8.21.3",
