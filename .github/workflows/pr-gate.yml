@@ -105,7 +105,7 @@ jobs:
       - name: Guard — nenhum arquivo describeIfDb fora do alcance deste job
         run: |
           EXPECTED="tests/contract/api.test.ts tests/contract/auth.test.ts tests/contract/db-audit.test.ts tests/contract/seed.test.ts"
-          ACTUAL=$(grep -rl "describeIfDb" tests/ 2>/dev/null | sort | tr '\n' ' ' | sed 's/ $//' || true)
+          ACTUAL=$(grep -rl "describeIfDb" tests/ 2>/dev/null | grep -v "tests/helpers/" | sort | tr '\n' ' ' | sed 's/ $//' || true)
           EXPECTED_SORTED=$(echo "$EXPECTED" | tr ' ' '\n' | sort | tr '\n' ' ' | sed 's/ $//')
           if [ "$ACTUAL" != "$EXPECTED_SORTED" ]; then
             echo "✖ A lista de arquivos com describeIfDb mudou e não bate com a que este job roda."
