@@ -291,7 +291,7 @@ export default function CompanyDetailPage() {
         </fieldset>
       </section>
 
-      <section aria-label="Sinais" className="border border-line bg-panel">
+      <section aria-label={`Sinais (${detail.signals.length})`} className="border border-line bg-panel">
         <header className="border-b border-line px-4 py-2"><span className="eyebrow">Sinais ({detail.signals.length})</span></header>
         <ul className="divide-y divide-line2">
           {detail.signals.map((s) => (
@@ -306,7 +306,7 @@ export default function CompanyDetailPage() {
         </ul>
       </section>
 
-      <section aria-label="Contatos" className="border border-line bg-panel">
+      <section aria-label={`Contatos (${detail.contacts.length})`} className="border border-line bg-panel">
         <header className="border-b border-line px-4 py-2"><span className="eyebrow">Contatos ({detail.contacts.length})</span></header>
         <ul className="divide-y divide-line2">
           {detail.contacts.map((c) => (

@@ -45,8 +45,14 @@ test("edição recalcula e conflito entre duas sessões é honesto", async ({ br
   const rhSelect = pageB.getByLabel("RH estruturado");
   const currentB = await rhSelect.inputValue();
   await rhSelect.selectOption(currentB === "true" ? "false" : "true");
-  await pageB.getByRole("button", { name: "Salvar alterações" }).click();
-  await expect(pageB.getByText("Alteração salva e recalculada.")).toBeVisible();
+  // Critério de rede: o PATCH precisa SAIR e voltar 200 — se o clique for
+  // engolido no cliente, o timeout nomeia a causa (flake j1→j2, ver PROGRESS).
+  const [saved] = await Promise.all([
+    pageB.waitForResponse((r) => r.request().method() === "PATCH" && /\/companies\//.test(r.url())),
+    pageB.getByRole("button", { name: "Salvar alterações" }).click(),
+  ]);
+  expect(saved.status()).toBe(200);
+  await expect(pageB.getByText("Alteração salva e recalculada.")).toBeVisible({ timeout: 20_000 });
 
   // A tenta salvar em cima da versão antiga → 409 com rascunho preservado.
   const nameA = pageA.getByLabel("Nome");
@@ -66,7 +72,7 @@ test("edição recalcula e conflito entre duas sessões é honesto", async ({ br
   // Devolve o estado (banco dev compartilhado): B reverte o flip do RH.
   await rhSelect.selectOption(currentB);
   await pageB.getByRole("button", { name: "Salvar alterações" }).click();
-  await expect(pageB.getByText("Alteração salva e recalculada.")).toBeVisible();
+  await expect(pageB.getByText("Alteração salva e recalculada.")).toBeVisible({ timeout: 20_000 });
 
   await ctxA.close();
   await ctxB.close();

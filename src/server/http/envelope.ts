@@ -26,7 +26,7 @@ export function errorJson(e: unknown, rid: string): NextResponse {
       { status: e.status, headers },
     );
   }
-  console.error(`[internal] request_id=${rid}`, e instanceof Error ? e.message : e);
+  console.error(`[internal] request_id=${rid}`, e instanceof Error ? `${e.name}: ${e.message}` : e);
   return NextResponse.json(
     { error: { code: "INTERNAL_ERROR", message: "Erro interno. Informe o request_id ao suporte.", field_errors: [], details: {} }, request_id: rid },
     { status: 500, headers: { "X-Request-Id": rid } },

@@ -10,6 +10,8 @@ export default defineConfig({
   globalSetup: "tests/e2e/global-setup.ts",
   timeout: 60_000,
   retries: 0,
+  fullyParallel: false,
+  workers: 1, // suítes mutam a mesma demo: ordem j1→j2→j3 com reset no globalSetup
   use: {
     baseURL: "http://localhost:3000",
     trace: "retain-on-failure",
