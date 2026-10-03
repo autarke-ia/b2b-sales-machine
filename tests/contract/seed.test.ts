@@ -3,10 +3,9 @@
  * sem DATABASE_URL, é pulada.
  */
 import { describe, expect, test } from "vitest";
+import { describeIfDb } from "../helpers/db";
 import { PrismaClient } from "@prisma/client";
 
-const appUrl = process.env.DATABASE_URL;
-const describeIfDb = appUrl ? describe : describe.skip;
 
 const TECHNICAL_ACTOR_ID = "3ae34d02-69bc-5ec2-ba0a-c4122d3bb5c9";
 
@@ -25,9 +24,11 @@ describeIfDb("Seed idempotente", () => {
 
   test("IMP05 — rodar o seed duas vezes não duplica nem gera audit de no-op", async () => {
     const { execFileSync } = await import("node:child_process");
-    const before = await prisma.auditEvent.count();
+    // Escopo source='seed': o no-op é sobre o EFEITO do seed; eventos 'manual' de
+    // outras suítes (datasets de teste) não são atribuíveis a esta execução.
+    const before = await prisma.auditEvent.count({ where: { source: "seed" } });
     execFileSync("pnpm", ["db:seed"], { shell: true, stdio: "pipe" });
-    const after = await prisma.auditEvent.count();
+    const after = await prisma.auditEvent.count({ where: { source: "seed" } });
     expect(after).toBe(before);
     const demo = await prisma.dataset.findFirst({
       where: { kind: "demo" },
