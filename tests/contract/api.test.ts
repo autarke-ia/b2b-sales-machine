@@ -67,7 +67,7 @@ describeIfDb("/schema", () => {
 
 describeIfDb("/datasets", () => {
   test("lista bases compartilhadas; demo presente com as_of 2026-09-30", async () => {
-    const res = await call(datasetsRoute.GET, "/datasets", { session: ctx });
+    const res = await call(datasetsRoute.GET, "/datasets?page_size=100", { session: ctx });
     const body = await ok<Array<{ id: string; kind: string; default_as_of: string }>>(res);
     const demoRow = body.data.find((d) => d.id === DEMO_DATASET.id);
     expect(demoRow).toBeDefined();
