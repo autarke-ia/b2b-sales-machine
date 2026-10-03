@@ -73,7 +73,8 @@ export async function err(res: Response): Promise<{ status: number; code: string
 export function firstSeedUser(): { email: string; password: string } {
   const list = JSON.parse(process.env.SEED_USERS ?? "[]") as Array<{ email: string; password: string }>;
   if (!list.length) throw new Error("SEED_USERS ausente no .env — necessário para os testes de auth.");
-  return list[0]!;
+  const { email, password } = list[0]!;
+  return { email, password }; // só credenciais: login rejeita campos desconhecidos
 }
 
 /** Login via handler e devolve o contexto de sessão (cookie + csrf). */

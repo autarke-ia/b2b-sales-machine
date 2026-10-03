@@ -12,15 +12,35 @@ export interface IdempotentResult {
   headers?: Record<string, string>;
 }
 
+/** Hash canônico (doc 03 §4): JSON re-serializado com chaves ordenadas — o mesmo
+ * payload lógico produz o mesmo hash mesmo com ordem/espaços diferentes. */
+function canonicalHash(raw: string, contentType: string | null): string {
+  if (contentType?.includes("application/json")) {
+    try {
+      const sorted = (value: unknown): unknown => {
+        if (Array.isArray(value)) return value.map(sorted);
+        if (value && typeof value === "object") {
+          return Object.fromEntries(
+            Object.entries(value as Record<string, unknown>)
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([k, v]) => [k, sorted(v)]),
+          );
+        }
+        return value;
+      };
+      return createHash("sha256").update(JSON.stringify(sorted(JSON.parse(raw)))).digest("hex");
+    } catch {
+      // JSON inválido cai no hash bruto — a rota rejeitará o body antes do efeito.
+    }
+  }
+  return createHash("sha256").update(raw).digest("hex");
+}
+
 /**
- * Idempotência de POST de negócio (doc 03 §4): a chave identifica
- * (usuário, método, rota, ação); repetição com o MESMO payload reproduz a resposta
- * original (header x-idempotent-replay); payload divergente é 409. O registro é
- * concluído na MESMA transação do efeito (`fn` recebe o tx e o id do registro).
- *
- * Durabilidade: o registro 'processing' entra primeiro (UNIQUE — a concorrente
- * ganha conflito imediato); se o processo morrer antes do commit do efeito, o
- * registro expira em 24h. Efeitos externos ficam em job durável (Fase 4).
+ * Idempotência de POST de negócio (doc 03 §4): mesma chave+payload reproduz a
+ * resposta original; payload divergente é 409; concorrente recebe 409 "em
+ * processamento". Falha dentro de `fn` LIBERA a chave (delete) — erro de
+ * validação não envenena a chave por 24h. Conclusão na MESMA transação do efeito.
  */
 export async function runIdempotent(
   req: Request,
@@ -35,12 +55,12 @@ export async function runIdempotent(
     ]);
   }
   const route = new URL(req.url).pathname;
-  const payloadHash = createHash("sha256").update(rawBody).digest("hex");
+  const payloadHash = canonicalHash(rawBody, req.headers.get("content-type"));
 
   const existing = await prisma.idempotencyRecord.findUnique({
     where: { user_id_method_route_key: { user_id: userId, method: req.method, route, key } },
   });
-  if (existing) {
+  if (existing && existing.expires_at.getTime() > Date.now()) {
     if (existing.payload_hash !== payloadHash) {
       throw conflict("IDEMPOTENCY_CONFLICT", "Chave de idempotência já usada com outro payload.", { key });
     }
@@ -63,16 +83,29 @@ export async function runIdempotent(
       payload_hash: payloadHash,
       expires_at: new Date(Date.now() + TTL_HOURS * 3600_000),
     },
+  }).catch(async (e) => {
+    // Corrida: a concorrente inseriu primeiro — trata como existente (409 processing).
+    if ((e as { code?: string }).code === "P2002") {
+      throw conflict("IDEMPOTENCY_CONFLICT", "Ação com esta chave já está em processamento.", { key });
+    }
+    throw e;
   });
 
-  const result = await prisma.$transaction(async (tx) => {
-    const r = await fn(tx, record.id);
-    await tx.idempotencyRecord.update({
-      where: { id: record.id },
-      data: { status: "completed", result: r as unknown as Prisma.InputJsonValue },
+  let result: IdempotentResult;
+  try {
+    result = await prisma.$transaction(async (tx) => {
+      const r = await fn(tx, record.id);
+      await tx.idempotencyRecord.update({
+        where: { id: record.id },
+        data: { status: "completed", result: r as unknown as Prisma.InputJsonValue },
+      });
+      return r;
     });
-    return r;
-  });
+  } catch (e) {
+    // Falha (validação/SQL): libera a chave para retry consciente com o mesmo payload.
+    await prisma.idempotencyRecord.delete({ where: { id: record.id } }).catch(() => undefined);
+    throw e;
+  }
 
   return NextResponse.json(result.body, { status: result.status, headers: result.headers });
 }

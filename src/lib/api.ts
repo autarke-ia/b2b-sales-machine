@@ -65,7 +65,7 @@ async function errorFrom(res: Response): Promise<ApiError> {
 
 export async function api<T>(
   path: string,
-  init: { method?: string; body?: unknown; idempotencyKey?: string } = {},
+  init: { method?: string; body?: unknown; idempotencyKey?: string; _csrfRetry?: boolean } = {},
 ): Promise<Envelope<T>> {
   const headers: Record<string, string> = {};
   if (init.body !== undefined) headers["content-type"] = "application/json";
@@ -83,6 +83,18 @@ export async function api<T>(
     const back = encodeURIComponent(window.location.pathname);
     window.location.href = `/login?retorno=${back}`;
     throw new Error("UNAUTHENTICATED");
+  }
+  // CSRF_INVALID (doc 03 §2): recupera a sessão UMA vez e repete conscientemente,
+  // sem loop — a segunda falha sobe para o caller.
+  if (res.status === 403 && !init._csrfRetry) {
+    const err = await errorFrom(res);
+    if (err.code === "CSRF_INVALID") {
+      const refreshed = await ensureSession();
+      if (refreshed) {
+        return api<T>(path, { ...init, _csrfRetry: true });
+      }
+    }
+    throw err;
   }
   if (!res.ok) throw await errorFrom(res);
   // 204 No Content (logout) não tem corpo — json() lançaria SyntaxError.

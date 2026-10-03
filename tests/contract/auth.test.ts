@@ -48,7 +48,7 @@ describe("AUTH01 — login individual", () => {
     expect(wrong.status).toBe(401);
     expect(unknown.status).toBe(401);
     expect(wrong.code).toBe(unknown.code);
-    expect(["INVALID_CREDENTIALS", "UNAUTHENTICATED"]).toContain(wrong.code);
+    expect(wrong.code).toBe("INVALID_CREDENTIALS");
   });
 });
 
@@ -100,7 +100,7 @@ describe("AUTH02 — logout revoga a sessão", () => {
     expect(clearing ?? "").toContain("Max-Age=0");
     const after = await err(await call(sessionRoute.GET, "/auth/session", { session: ctx }));
     expect(after.status).toBe(401);
-    expect(["SESSION_EXPIRED", "UNAUTHENTICATED"]).toContain(after.code);
+    expect(after.code).toBe("UNAUTHENTICATED"); // revogada, não expirada
   });
 });
 

@@ -1,5 +1,5 @@
 import { forbidden, unauthenticated } from "./errors";
-import { csrfMatches, sessionFromCookie, type AuthenticatedSession } from "../auth/session";
+import { csrfMatches, sessionFromCookieClassified, type AuthenticatedSession } from "../auth/session";
 
 const MUTATING = new Set(["POST", "PATCH", "PUT", "DELETE"]);
 
@@ -16,9 +16,12 @@ export function assertOrigin(req: Request): void {
 }
 
 export async function requireSession(req: Request): Promise<AuthenticatedSession> {
-  const found = await sessionFromCookie(req);
-  if (!found) throw unauthenticated();
-  return found;
+  const result = await sessionFromCookieClassified(req);
+  if (result.kind !== "ok") {
+    if (result.kind === "expired") throw unauthenticated("SESSION_EXPIRED", "Sessão expirada. Entre novamente.");
+    throw unauthenticated();
+  }
+  return result.ctx;
 }
 
 /** Sessão + CSRF + Origin para toda mutação autenticada (doc 03 §2, INV-12). */

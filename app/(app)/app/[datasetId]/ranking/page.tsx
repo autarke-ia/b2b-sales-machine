@@ -106,6 +106,8 @@ export default function RankingPage() {
     setRefreshing(false);
   }
 
+  const [exportError, setExportError] = useState<string | null>(null);
+
   const filterQuery = useMemo(() => {
     const p = new URLSearchParams();
     if (q) p.set("q", q);
@@ -131,12 +133,26 @@ export default function RankingPage() {
           <Button
             variant="secondary"
             disabled={!state || state.isStale}
-            onClick={() => { if (state) void downloadCsv(datasetId, state.snapshotId, filterQuery ? `&${filterQuery}` : ""); }}
+            onClick={async () => {
+              if (!state) return;
+              setExportError(null);
+              try {
+                await downloadCsv(datasetId, state.snapshotId, filterQuery ? `&${filterQuery}` : "");
+              } catch (e) {
+                setExportError((e as Error).message);
+              }
+            }}
           >
             <Download className="size-3.5" aria-hidden /> Exportar CSV
           </Button>
         </div>
       </div>
+
+      {exportError ? (
+        <div className="mt-3 border border-bad/30 bg-tint-bad px-3 py-2 text-[var(--text-xs)] text-bad-fg" role="alert">
+          Falha ao exportar: {exportError}
+        </div>
+      ) : null}
 
       {state?.isStale ? (
         <div className="mt-3 border border-broken/30 bg-tint-broken px-3 py-2 text-[var(--text-xs)] text-broken-fg" role="status">

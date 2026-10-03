@@ -199,32 +199,35 @@ async function materializeSnapshot(dataset: DatasetPayload, asOf: string, userId
     .map((r) => ({ company_id: r.company.id, external_id: r.company.external_id, assessment: r.assessment }));
   // rankRows preserva campos extras do input (company_id) através do genérico R.
   const rankedRows = rankRows(rankable);
+  const asOfDate = new Date(asOf);
 
-  // Persiste assessments (derivados imutáveis; UNIQUE da cache key completa).
-  await prisma.assessment.createMany({
-    data: companies.map((c) => ({
-      dataset_id: dataset.id,
-      company_id: c.id,
-      input_revision: c.input_revision,
-      ruleset_id: dataset.active_ruleset_id!,
-      as_of: new Date(asOf),
-      dataset_revision: dataset.data_revision,
-      review_revision: dataset.review_revision,
-      payload: evaluation.assessments.get(c.id)! as unknown as Prisma.InputJsonValue,
-    })),
-    skipDuplicates: true,
+  // Assessments + snapshot na MESMA transação: artefato derivado nunca órfão.
+  const assessmentId = await prisma.$transaction(async (tx) => {
+    await tx.assessment.createMany({
+      data: companies.map((c) => ({
+        dataset_id: dataset.id,
+        company_id: c.id,
+        input_revision: c.input_revision,
+        ruleset_id: dataset.active_ruleset_id!,
+        as_of: asOfDate,
+        dataset_revision: dataset.data_revision,
+        review_revision: dataset.review_revision,
+        payload: evaluation.assessments.get(c.id)! as unknown as Prisma.InputJsonValue,
+      })),
+      skipDuplicates: true,
+    });
+    const stored = await tx.assessment.findMany({
+      where: {
+        dataset_id: dataset.id,
+        ruleset_id: dataset.active_ruleset_id!,
+        as_of: asOfDate,
+        dataset_revision: dataset.data_revision,
+        review_revision: dataset.review_revision,
+      },
+      select: { id: true, company_id: true, input_revision: true },
+    });
+    return new Map(stored.map((s) => [`${s.company_id}:${s.input_revision}`, s.id]));
   });
-  const stored = await prisma.assessment.findMany({
-    where: {
-      dataset_id: dataset.id,
-      ruleset_id: dataset.active_ruleset_id!,
-      as_of: new Date(asOf),
-      dataset_revision: dataset.data_revision,
-      review_revision: dataset.review_revision,
-    },
-    select: { id: true, company_id: true, input_revision: true },
-  });
-  const assessmentId = new Map(stored.map((s) => [`${s.company_id}:${s.input_revision}`, s.id]));
 
   const rows: RankingRow[] = rankedRows.map((r) => {
     const company = byId.get(r.company_id)!;
@@ -239,7 +242,10 @@ async function materializeSnapshot(dataset: DatasetPayload, asOf: string, userId
       uf: company.uf,
       employees: company.employees,
       assessment: {
-        id: assessmentId.get(`${company.id}:${company.input_revision}`) ?? "",
+        id: assessmentId.get(`${company.id}:${company.input_revision}`) ??
+          (() => {
+            throw new Error(`SNAPSHOT_INCONSISTENT: assessment ausente para ${company.external_id}`);
+          })(),
         company_id: company.id,
         company_version: company.version,
         input_revision: company.input_revision,
@@ -255,17 +261,37 @@ async function materializeSnapshot(dataset: DatasetPayload, asOf: string, userId
       pending_suggestions: evaluation.pendingCounts.get(company.id) ?? 0,
     };
   });
-  return prisma.rankingSnapshot.create({
-    data: {
-      dataset_id: dataset.id,
-      data_revision: dataset.data_revision,
-      review_revision: dataset.review_revision,
-      ruleset_id: dataset.active_ruleset_id!,
-      as_of: new Date(asOf),
-      rows: rows as unknown as Prisma.InputJsonValue,
-      created_by: userId,
-    },
-  });
+  try {
+    return await prisma.rankingSnapshot.create({
+      data: {
+        dataset_id: dataset.id,
+        data_revision: dataset.data_revision,
+        review_revision: dataset.review_revision,
+        ruleset_id: dataset.active_ruleset_id!,
+        as_of: asOfDate,
+        rows: rows as unknown as Prisma.InputJsonValue,
+        created_by: userId,
+      },
+    });
+  } catch (e) {
+    // Corrida de primeira materialização (dois GETs simultâneos): o UNIQUE da
+    // cache key elege um vencedor — reusa em vez de 500 (INV-7/8 preservados).
+    if ((e as { code?: string }).code === "P2002") {
+      const winner = await prisma.rankingSnapshot.findUnique({
+        where: {
+          dataset_id_data_revision_review_revision_ruleset_id_as_of: {
+            dataset_id: dataset.id,
+            data_revision: dataset.data_revision,
+            review_revision: dataset.review_revision,
+            ruleset_id: dataset.active_ruleset_id!,
+            as_of: asOfDate,
+          },
+        },
+      });
+      if (winner) return winner;
+    }
+    throw e;
+  }
 }
 
 export interface RankingView {

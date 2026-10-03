@@ -15,12 +15,34 @@ import { call, err, login, ok, prisma, DEMO_DATASET, type SessionCtx } from "../
 import rulesDefault from "../../contracts/rules-default-v1.json";
 
 let ctx: SessionCtx;
+const createdDatasetIds: string[] = [];
 
 beforeAll(async () => {
   ctx = await login(loginRoute.POST);
 });
 
 afterAll(async () => {
+  // Limpeza dos datasets de teste com credencial owner (a app não tem DELETE de
+  // negócio): o banco dev compartilhado não acumula bases de teste entre runs.
+  if (createdDatasetIds.length) {
+    const { PrismaClient } = await import("@prisma/client");
+    const owner = new PrismaClient({ datasourceUrl: process.env.DATABASE_MIGRATION_URL });
+    try {
+      for (const id of createdDatasetIds) {
+        await owner.$transaction(async (tx) => {
+          await tx.$executeRawUnsafe(
+            `SELECT set_config('app.actor_user_id', '3ae34d02-69bc-5ec2-ba0a-c4122d3bb5c9', true), set_config('app.source', 'system', true)`,
+          );
+          await tx.rankingSnapshot.deleteMany({ where: { dataset_id: id } });
+          await tx.assessment.deleteMany({ where: { dataset_id: id } });
+          await tx.ruleset.deleteMany({ where: { dataset_id: id } });
+          await tx.dataset.delete({ where: { id } });
+        });
+      }
+    } finally {
+      await owner.$disconnect();
+    }
+  }
   await prisma.$disconnect();
 });
 
@@ -69,6 +91,7 @@ describe("/datasets", () => {
     const first = await call(datasetsRoute.POST, "/datasets", { method: "POST", body: payload, session: ctx, headers: { "idempotency-key": key } });
     expect(first.status).toBe(201);
     const firstBody = await ok<{ id: string }>(first);
+    createdDatasetIds.push(firstBody.data.id);
 
     const replay = await call(datasetsRoute.POST, "/datasets", { method: "POST", body: payload, session: ctx, headers: { "idempotency-key": key } });
     expect(replay.status).toBe(201);
@@ -80,6 +103,22 @@ describe("/datasets", () => {
     );
     expect(conflict.status).toBe(409);
     expect(conflict.code).toBe("IDEMPOTENCY_CONFLICT");
+  });
+
+  test("POST /datasets sem CSRF é 403 CSRF_INVALID e nada é criado (INV-12)", async () => {
+    const before = await prisma.dataset.count();
+    const r = await err(
+      await call(datasetsRoute.POST, "/datasets", {
+        method: "POST",
+        body: { name: "não deve ser criada" },
+        session: ctx,
+        csrf: null,
+        headers: { "idempotency-key": `nocsrf-${crypto.randomUUID()}` },
+      }),
+    );
+    expect(r.status).toBe(403);
+    expect(r.code).toBe("CSRF_INVALID");
+    expect(await prisma.dataset.count()).toBe(before);
   });
 
   test("POST sem chave de idempotência é rejeitado", async () => {
@@ -95,6 +134,7 @@ describe("/datasets", () => {
       headers: { "idempotency-key": `ds-${crypto.randomUUID()}` },
     });
     const empty = (await ok<{ id: string }>(created)).data.id;
+    createdDatasetIds.push(empty);
     const list = await call(companiesRoute.GET, ds(empty, "/companies"), { session: ctx }, { dataset_id: empty });
     const body = await ok<unknown[]>(list);
     expect(body.data).toEqual([]);
@@ -169,6 +209,35 @@ describe("/ranking — snapshots determinísticos (INV-5/6/7/8)", () => {
     expect(JSON.stringify(bBody.data)).toBe(JSON.stringify(aBody.data));
   });
 
+  test("INV-7 de verdade: materialização NOVA (cache apagado) reproduz o mesmo ranque", async () => {
+    const first = await call(rankingRoute.GET, demo("/ranking?page_size=100"), { session: ctx }, { dataset_id: DEMO_DATASET.id });
+    const firstBody = await ok<unknown[]>(first);
+    const snapshotId = (firstBody.meta as Record<string, unknown>).snapshot_id as string;
+
+    // Apaga o snapshot com a credencial owner (a app não tem DELETE em derivados,
+    // por design). O próximo GET precisa REMATERIALIZAR do zero: determinismo real,
+    // não apenas reuso do mesmo artefato.
+    const { PrismaClient } = await import("@prisma/client");
+    const owner = new PrismaClient({ datasourceUrl: process.env.DATABASE_MIGRATION_URL });
+    try {
+      await owner.rankingSnapshot.delete({ where: { id: snapshotId } });
+    } finally {
+      await owner.$disconnect();
+    }
+
+    const second = await call(rankingRoute.GET, demo("/ranking?page_size=100"), { session: ctx }, { dataset_id: DEMO_DATASET.id });
+    const secondBody = await ok<unknown[]>(second);
+    expect((secondBody.meta as Record<string, unknown>).snapshot_id).not.toBe(snapshotId);
+    // Ranque e scores exatamente iguais; apenas id/calculated_at da assessment mudam.
+    const strip = (rows: unknown[]) =>
+      JSON.parse(JSON.stringify(rows)).map((r: { assessment: { id?: string; calculated_at?: string } }) => {
+        delete r.assessment.id;
+        delete r.assessment.calculated_at;
+        return r;
+      });
+    expect(strip(secondBody.data)).toEqual(strip(firstBody.data));
+  });
+
   test("consistência com o motor: posições conferem com rankRows sobre o banco (INV-6/7)", async () => {
     const companies = await prisma.company.findMany({ where: { dataset_id: DEMO_DATASET.id, archived_at: null } });
     const signals = await prisma.signal.findMany({ where: { dataset_id: DEMO_DATASET.id } });
@@ -218,7 +287,7 @@ describe("/ranking — snapshots determinísticos (INV-5/6/7/8)", () => {
     const snapshotId = ((await all.json()) as { meta: { snapshot_id: string } }).meta.snapshot_id;
     const r = await err(await call(rankingRoute.GET, demo(`/ranking?snapshot_id=${snapshotId}&as_of=2026-01-01`), { session: ctx }, { dataset_id: DEMO_DATASET.id }));
     expect(r.status).toBeGreaterThanOrEqual(400);
-    expect(["MALFORMED_REQUEST", "VALIDATION_ERROR", "INVALID_STATE_TRANSITION"]).toContain(r.code);
+    expect(r.code).toBe("MALFORMED_REQUEST");
   });
 });
 
