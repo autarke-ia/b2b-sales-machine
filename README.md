@@ -1,11 +1,35 @@
 # ITA Challenge · Grupo 2 · Allya
-## Pacote de especificação para implementação — v1.0.0
+## Protótipo v1 implementado · especificação v1.0.0
 
 **Marco: frontend. Gabriel: backend.** Data de referência: 01/10/2026.
 
-Este pacote define o produto a construir. Não contém uma aplicação pronta ou um backend conectado. Os exemplos, o motor de referência e os testes de contrato servem para desenvolver e verificar as duas partes separadamente.
+Este repositório contém o **protótipo implementado** (Fases 0–4 do plano: motor determinístico, API, auditoria append-only, importação CSV, regras versionadas, IA assistida com revisão humana e métricas) **e** o pacote de especificação que o governa. A especificação permanece normativa: divergência entre código e documento corrige o pacote antes de implementar.
 
-### Começar por aqui
+## Quick start
+
+```bash
+pnpm install     # dependências + prisma generate (pnpm 9.15.9, Node ≥ 20)
+pnpm db:setup    # papéis → migrations → seed da demo (idempotente)
+pnpm dev         # http://localhost:3000
+```
+
+- **Banco**: PostgreSQL `b2b_sales_machine_dev` (credenciais no `.env` local — copie os nomes do [`.env.example`](.env.example); nunca versionado).
+- **Login**: usuários pré-cadastrados definidos em `SEED_USERS` do `.env` (ex.: `dev1@b2bsm.local` e `dev2@b2bsm.local`; **as senhas estão no seu `.env`**). Dois usuários = demonstração do conflito 409 em duas janelas.
+- **IA**: `AI_PROVIDER=fixture` — interpretador determinístico sobre os sinais da base, sem chave nem rede.
+
+### Verificar
+
+```bash
+pnpm test        # 151 testes de domínio + contrato (contra o banco real)
+pnpm e2e         # 4 jornadas no navegador — ATENÇÃO: reseta a demo antes/depois
+pnpm test:all    # typecheck + lint + test + build + e2e (gate completo)
+```
+
+O roteiro completo de execução, demonstração e troubleshooting está no
+[runbook](docs/runbooks/rodar-e-testar.md). Demo carregada: 120 empresas,
+287 sinais — 56 dentro do ICP / 37 fora / 27 pendentes sob os defaults.
+
+### Começar por aqui (especificação)
 
 | Leitor | Ordem sugerida |
 |---|---|
