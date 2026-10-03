@@ -3,6 +3,11 @@ name: release-please
 # Versionamento + changelog automáticos por Conventional Commits — paridade 1:1 com
 # o autarkeia-website (que por sua vez espelha o Mindville): abre/atualiza um PR de
 # release; ao mergear, cria a tag vX.Y.Z — que dispara o app-ecr (push de tag v*).
+#
+# Guard `app-present` (mesmo padrão do pr-gate/app-ecr): release-type "node" lê a
+# versão do package.json — enquanto a main for spec-only, o job pula VISÍVEL em vez
+# de falhar (a primeira execução sem guard morreu em "Missing required file:
+# package.json"; o website não precisa disso porque a main dele sempre teve app).
 on:
   push:
     branches:
@@ -13,7 +18,20 @@ permissions:
   pull-requests: write
 
 jobs:
+  app-present:
+    runs-on: ubuntu-latest
+    outputs:
+      has_app: ${{ steps.check.outputs.has_app }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: check
+        run: |
+          if [ -f package.json ]; then echo "has_app=true" >> "$GITHUB_OUTPUT";
+          else echo "has_app=false" >> "$GITHUB_OUTPUT"; fi
+
   release-please:
+    needs: app-present
+    if: needs.app-present.outputs.has_app == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Run Release Please
