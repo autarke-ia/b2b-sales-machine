@@ -1,0 +1,40 @@
+# /etc/nginx/sites-available/<seu-domínio> — EXEMPLO
+#
+# Reverse proxy do protótipo B2B Sales Machine no nginx DO HOST (mesmo modelo
+# dos domínios Autarkeia/Mindville na mesma caixa). O container publica em
+# 127.0.0.1:3001 (só localhost) — confira não colidir com os outros containers
+# (website usa 8081).
+#
+# Substitua <seu-domínio> (ex.: allya.autarke.ia.br) antes de instalar:
+#   sudo cp deploy/nginx/b2bsm.conf.example /etc/nginx/sites-available/<seu-domínio>
+#   sudo ln -s /etc/nginx/sites-available/<seu-domínio> /etc/nginx/sites-enabled/
+#   sudo nginx -t && sudo systemctl reload nginx
+# TLS (após o A/AAAA record propagar):
+#   sudo certbot --nginx -d <seu-domínio>   → reescreve p/ :443 + redirect 80→443
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name <seu-domínio>;
+
+    # Uploads de CSV: limite de produto é 10 MiB + overhead multipart.
+    client_max_body_size 12m;
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    # HSTS só quando o HTTPS estiver 100% estável:
+    # add_header Strict-Transport-Security "max-age=31536000" always;
+
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        # O app usa TRUSTED_PROXY_DEPTH=1: lê o ÚLTIMO hop do XFF (o que ESTE
+        # nginx acrescenta) — prefixos forjados pelo cliente são ignorados.
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 120s;
+    }
+}
