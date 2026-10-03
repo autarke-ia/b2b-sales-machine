@@ -13,7 +13,9 @@ Registro de capacidades reutilizáveis do projeto. Classificar com evidência de
 | UI login/shell/lista/ranking (tokens Autarkeia) | produção — `/login`, `/app`, `/app/:id/companies`, `/app/:id/ranking` | e2e jornada 1 (Playwright 2/2) | Fase 1 |
 | CSV de ranking (BOM, fórmula-neutralizado) | produção — botão Exportar usa o snapshot exibido | contrato CSV + e2e waitForRequest snapshot_id | Fase 1 |
 | CI (pr-gate + db-tests efêmero, release-please, ECR) | produção — branch `main` verde; ECR aguarda var AWS_ROLE_TO_ASSUME | runs na main pós-#2/#3 | Fase 0/CI |
-| CRUD de entidades + edição versionada 409 | ausente — Fase 2 | — | — |
+| CRUD company: PATCH versionado + 409 + no-op + archive/restore | produção — rotas PATCH/archive em /datasets/{id}/companies/{record_id}; UI de edição consumindo | tests/contract/crud.test.ts 12/12 (CRUD01-05, AUD01/05, DATA02) | Fase 2 |
+| Detalhe com avaliação individual + sinais/contatos | produção — GET {record_id} (assessment pela cache key ou computa); UI /app/:id/companies/:id | crud.test.ts (detalhe) + e2e jornada 2 | Fase 2 |
+| Histórico append-only por campo (before/after) | produção — GET {record_id}/history?field= ; UI com filtro | AUD05 (reversões consultáveis) | Fase 2 |
 | Importação CSV/XLSX com prévia→commit | ausente — Fase 3 (recorte D2: CSVs) | — | — |
 | Regras versionadas (rascunho→publicação) | ausente — Fase 3 | — | — |
 | IA: jobs duráveis + adaptador + revisão transacional | ausente — Fase 4 | — | — |

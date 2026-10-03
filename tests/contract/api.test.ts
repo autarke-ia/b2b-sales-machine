@@ -2,7 +2,7 @@
  * Fase 1.1 — contratos de schema, datasets (idempotência), listagem de empresas
  * (filtros, paginação, golden do gate) e ranking (snapshots, INV-5/6/7/8, CSV).
  */
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, beforeAll, expect, test } from "vitest";
 import { describeIfDb } from "../helpers/db";
 import * as schemaRoute from "../../app/api/v1/schema/route";
 import * as datasetsRoute from "../../app/api/v1/datasets/route";
