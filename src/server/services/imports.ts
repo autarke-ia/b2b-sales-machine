@@ -43,7 +43,7 @@ const TARGETS: Record<ImportTargetName, { columns: ColumnSpec[]; idColumn: strin
     columns: [
       { canonical: "external_id", aliases: ["id empresa"], required: true, normalize: (v) => clean(v) },
       { canonical: "name", aliases: ["empresa"], required: true, normalize: (v) => clean(v).slice(0, 240) },
-      { canonical: "domain", aliases: ["domínio fictício", "dominio ficticio"], normalize: text(253) },
+      { canonical: "domain", aliases: ["domínio fictício", "dominio ficticio"], normalize: (v) => { const d = text(253)(v); if (d === null) return null; if (!/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/.test(d)) throw new NormalizeError("INVALID_DOMAIN", `Domínio inválido: "${v}"`); return d; } },
       { canonical: "segment", aliases: ["segmento"], normalize: text(120) },
       { canonical: "employees", aliases: ["colaboradores"], normalize: intOrNull(0) },
       { canonical: "uf", normalize: (v) => { const u = clean(v).toUpperCase(); if (v === "") return null; if (!UFS.has(u)) throw new NormalizeError("INVALID_UF", `UF inválida: "${v}"`); return u; } },
@@ -215,12 +215,17 @@ export async function createImportPreview(
     }
   }
 
+  if (lines.length - 1 > 10_000) {
+    issues.push({ row: 1, message: `Arquivo com ${lines.length - 1} linhas de dados — o limite é 10.000 por arquivo.` });
+  }
+
   const rows: Array<{ row: number; data: Record<string, unknown> }> = [];
   for (let i = 1; i < lines.length; i++) {
     const cells = parseCsvLine(lines[i]!, separator);
     const data: Record<string, unknown> = {};
     for (const { index, spec: col } of colAt) {
       const raw = cells[index] ?? "";
+      if (clean(raw) === NULL_SENTINEL) { data[col.canonical] = NULL_SENTINEL; continue; }
       if (isFormulaCell(raw)) {
         issues.push({ row: i + 1, field: col.canonical, message: `Célula de fórmula rejeitada (linha ${i + 1}): "${raw.slice(0, 30)}"` });
         continue;
@@ -232,6 +237,12 @@ export async function createImportPreview(
         issues.push({ row: i + 1, field: col.canonical, message: msg });
       }
     }
+    for (const dateField of ["observed_on", "closed_on"]) {
+      const v = data[dateField];
+      if (typeof v === "string" && v > dataset.default_as_of.toISOString().slice(0, 10)) {
+        warnings.push({ row: i + 1, field: dateField, message: `Data futura (${v}) preservada; não pontua recência.` });
+      }
+    }
     rows.push({ row: i + 1, data });
   }
 
@@ -240,7 +251,7 @@ export async function createImportPreview(
   if (RULE_TARGETS.has(target) && issues.length === 0) {
     try {
       buildDraftRules(target, rows.map((r) => r.data));
-      rulesDraftId = "pending"; // criado no commit junto com o resto (prévia não altera cadastro)
+      rulesDraftId = null; // o rascunho é criado no commit; a prévia não altera cadastro
     } catch (e) {
       issues.push({ row: 1, message: e instanceof Error ? e.message : "Regras inválidas" });
     }
@@ -251,6 +262,18 @@ export async function createImportPreview(
   const preview: ImportPreviewResult["preview"] = [];
   if (issues.length === 0) {
     await classifyRows(dataset, target, spec, rows, mergePolicy, counts, preview, warnings, issues);
+    if (target === "companies") {
+      const existing = await prisma.company.count({ where: { dataset_id: dataset.id } });
+      if (existing + counts.create > 2_000) issues.push({ row: 1, message: `Base excederia 2.000 empresas (${existing} + ${counts.create}).` });
+    } else if (target === "signals" || target === "contacts" || target === "opportunities") {
+      const existing =
+        target === "signals"
+          ? await prisma.signal.count({ where: { dataset_id: dataset.id } })
+          : target === "contacts"
+            ? await prisma.contact.count({ where: { dataset_id: dataset.id } })
+            : await prisma.opportunity.count({ where: { dataset_id: dataset.id } });
+      if (existing + counts.create > 20_000) issues.push({ row: 1, message: `Base excederia 20.000 registros (${existing} + ${counts.create}).` });
+    }
   }
 
   const sha256 = createHash("sha256").update(fileBody).digest("hex");
@@ -287,7 +310,7 @@ export async function createImportPreview(
             ? (issues.filter((x) => x.row === r.row) as unknown as Prisma.InputJsonValue)
             : undefined,
         })),
-      ].slice(0, 10_000),
+      ],
     });
   }
 
@@ -432,10 +455,16 @@ export async function commitImport(
   importId: string,
   expectedDatasetRevision: number,
   userId: string,
+  confirmOverwrite = false,
 ): Promise<CommitResult> {
   const batch = await prisma.importBatch.findUnique({ where: { id: importId }, include: { rows: true } });
   if (!batch || batch.dataset_id !== dataset.id) throw notFound("Importação não encontrada nesta base.");
   if (batch.status === "invalid") throw validation("Prévia inválida — commit indisponível. Corrija o arquivo e gere nova prévia.");
+  if (batch.merge_policy === "overwrite_non_null" && !confirmOverwrite) {
+    throw validation("overwrite_non_null exige confirm_overwrite=true explícito.", [
+      { field: "confirm_overwrite", message: "obrigatório para sobrescrever valores existentes" },
+    ]);
+  }
   if (batch.status === "committed") throw conflict("ACTION_ALREADY_RESOLVED", "Importação já confirmada.");
   if (batch.expires_at.getTime() < Date.now()) throw conflict("IMPORT_PREVIEW_STALE", "Prévia expirada (24h). Gere uma nova.");
   const fresh = await prisma.dataset.findUniqueOrThrow({ where: { id: dataset.id } });
@@ -453,6 +482,13 @@ export async function commitImport(
     .map((r) => ({ row: r.row_number, data: r.normalized as Record<string, unknown> }));
 
   return prisma.$transaction(async (tx) => {
+    // Serializa commits do mesmo lote (finder P1: TOCTOU) — revalida sob lock.
+    await tx.$queryRaw`SELECT id FROM import_batches WHERE id = ${importId}::uuid FOR UPDATE`;
+    const locked = await tx.importBatch.findUnique({ where: { id: importId } });
+    if (locked && (locked.status === "committed" || locked.status === "invalid")) {
+      throw conflict(locked.status === "committed" ? "ACTION_ALREADY_RESOLVED" : "VALIDATION_ERROR",
+        locked.status === "committed" ? "Importação já confirmada." : "Prévia inválida — commit indisponível.");
+    }
     await setActorContext(tx, { actor_user_id: userId, source: "import", import_id: importId });
     const counts = { create: 0, update: 0, ignore: 0 };
     let rulesDraftId: string | null = null;
@@ -476,7 +512,7 @@ export async function commitImport(
         const existing = await tx.company.findUnique({
           where: { dataset_id_external_id: { dataset_id: dataset.id, external_id: String(data.external_id) } },
         });
-        const fields = fieldsFromRow(data, ["external_id", "name"], "companies");
+        const fields = fieldsFromRow(data, ["external_id"], "companies");
         if (!existing) {
           await tx.company.create({
             data: {
@@ -538,7 +574,7 @@ export async function commitImport(
           const changes = await changesForUpdate(tx, target, existing.id, fields, batch.merge_policy as string);
           if (Object.keys(changes).length === 0) { counts.ignore++; continue; }
           await (model as typeof tx.signal).update({
-            where: { id: existing.id } as never,
+            where: { id: existing.id, version: existing.version } as never,
             data: {
               ...changes,
               version: { increment: 1 },
@@ -592,6 +628,7 @@ async function changesForUpdate(
       continue;
     }
     if (cur === null || cur === undefined) changes[k] = v;
+    else if (k === "operating_status" && cur === "unknown") changes[k] = v;
     else if (policy === "overwrite_non_null" && cur !== v) changes[k] = v;
   }
   return changes;

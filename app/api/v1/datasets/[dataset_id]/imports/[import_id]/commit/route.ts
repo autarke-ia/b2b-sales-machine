@@ -31,7 +31,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ dataset_id: st
 
     return await runIdempotent(req, session.user.id, raw, async (tx, recordId) => {
       void tx; void recordId; // commit é transação própria e atômica
-      const result = await commitImport(dataset, import_id, revision, session.user.id);
+      const result = await commitImport(dataset, import_id, revision, session.user.id, body.confirm_overwrite === true);
       return { status: 200, body: { data: result, meta: { request_id: rid } }, headers: { "X-Request-Id": rid } };
     });
   } catch (e) {

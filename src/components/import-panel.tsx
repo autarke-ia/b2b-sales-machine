@@ -69,8 +69,8 @@ export function ImportPanel({ datasetId, onCommitted }: { datasetId: string; onC
     try {
       await api(`/datasets/${datasetId}/imports/${preview.import_id}/commit`, {
         method: "POST",
-        body: { expected_dataset_revision: preview.dataset_revision },
-        idempotencyKey: `import-${preview.import_id}-${crypto.randomUUID()}`,
+        body: { expected_dataset_revision: preview.dataset_revision, ...(policy === "overwrite_non_null" ? { confirm_overwrite: true } : {}) },
+        idempotencyKey: `import-${preview.import_id}-${preview.dataset_revision}`,
       });
       setPreview(null);
       setFile(null);

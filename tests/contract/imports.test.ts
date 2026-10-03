@@ -74,8 +74,7 @@ async function preview(fileBody: string, target: string, policy = "fill_missing"
   return importsRoute.POST(req, { params: Promise.resolve(params()) });
 }
 
-const COMPANIES_CSV = `external_id,name,domain,segment,employees,uf,hr_structured,growth
-IMP-001,Importada Um,imp1.com.br,Tecnologia,300,SP,true,Alto
+const COMPANIES_CSV = `external_id,name,domain,segment,employees,uf,hr_structured,growth\nIMP-001,Importada Um,imp1.com.br,Tecnologia,300,SP,true,Alto
 IMP-002,Importada Dois,imp2.com.br,Indústria,90,MG,false,Médio
 `;
 
@@ -224,6 +223,57 @@ describeIfDb("IMP07 — obsolescência da prévia", () => {
     expect(commit.status).toBe(409);
     expect(commit.code).toBe("IMPORT_PREVIEW_STALE");
     expect(await prisma.company.count({ where: { dataset_id: datasetId, external_id: "IMP-ST" } })).toBe(0);
+  });
+});
+
+describeIfDb("IMP06b — overwrite_non_null e __NULL__ (finder)", () => {
+  test("sobrescreve SOMENTE com confirm_overwrite; __NULL__ apaga nullable", async () => {
+    const pvA = await ok<{ import_id: string; dataset_revision: number }>(
+      await preview("external_id,name,domain,segment,employees,uf,hr_structured,growth\nIMP-002,Importada Dois RENOMEADA,novo.com.br,Agro,500,SP,true,Alto\n", "companies", "overwrite_non_null"),
+    );
+    const refused = await err(await call(commitRoute.POST, `${base()}/imports/${pvA.data.import_id}/commit`, {
+      method: "POST", body: { expected_dataset_revision: pvA.data.dataset_revision },
+      session: ctx, headers: { "idempotency-key": `ow1-${crypto.randomUUID()}` },
+    }, { ...params(), import_id: pvA.data.import_id }));
+    expect(refused.status).toBe(422);
+    const untouched = await prisma.company.findUniqueOrThrow({ where: { dataset_id_external_id: { dataset_id: datasetId, external_id: "IMP-002" } } });
+    expect(untouched.employees).toBe(90);
+
+    const pvB = await ok<{ import_id: string; dataset_revision: number }>(
+      await preview("external_id,name,domain,segment,employees,uf,hr_structured,growth\nIMP-002,Importada Dois RENOMEADA,__NULL__,Agro,500,SP,true,Alto\n", "companies", "overwrite_non_null"),
+    );
+    const applied = await call(commitRoute.POST, `${base()}/imports/${pvB.data.import_id}/commit`, {
+      method: "POST", body: { expected_dataset_revision: pvB.data.dataset_revision, confirm_overwrite: true },
+      session: ctx, headers: { "idempotency-key": `ow2-${crypto.randomUUID()}` },
+    }, { ...params(), import_id: pvB.data.import_id });
+    expect(applied.status).toBe(200);
+    const changed = await prisma.company.findUniqueOrThrow({ where: { dataset_id_external_id: { dataset_id: datasetId, external_id: "IMP-002" } } });
+    expect(changed.name).toBe("Importada Dois RENOMEADA");
+    expect(changed.employees).toBe(500);
+    expect(changed.domain).toBeNull();
+  });
+});
+
+describeIfDb("IMP08b — commits concorrentes do mesmo lote (chaves distintas)", () => {
+  test("exatamente UM aplica; o outro recebe ACTION_ALREADY_RESOLVED", async () => {
+    const pv = await ok<{ import_id: string; dataset_revision: number }>(
+      await preview("external_id,name,domain,segment,employees,uf,hr_structured,growth\nIMP-CONC,Concorrente,c.com,Seg,42,SP,true,Alto\n", "companies"),
+    );
+    const payload = { expected_dataset_revision: pv.data.dataset_revision };
+    const [a, b] = await Promise.allSettled([
+      call(commitRoute.POST, `${base()}/imports/${pv.data.import_id}/commit`, {
+        method: "POST", body: payload, session: ctx, headers: { "idempotency-key": `k1-${crypto.randomUUID()}` },
+      }, { ...params(), import_id: pv.data.import_id }),
+      call(commitRoute.POST, `${base()}/imports/${pv.data.import_id}/commit`, {
+        method: "POST", body: payload, session: ctx, headers: { "idempotency-key": `k2-${crypto.randomUUID()}` },
+      }, { ...params(), import_id: pv.data.import_id }),
+    ]);
+    const codes = [a, b].map((r) => {
+      if (r.status === "fulfilled") return r.value.status;
+      return (r.reason as { code?: string }).code === "ACTION_ALREADY_RESOLVED" ? 409 : 500;
+    }).sort();
+    expect(codes).toEqual([200, 409]);
+    expect(await prisma.company.count({ where: { dataset_id: datasetId, external_id: "IMP-CONC" } })).toBe(1);
   });
 });
 

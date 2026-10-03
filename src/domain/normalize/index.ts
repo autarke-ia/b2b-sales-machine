@@ -42,7 +42,7 @@ export function normalizeRenewal(raw: string): "m0_3" | "m4_6" | "m7_12" | "over
     [/^(0[ –-]?3|0–3|0-3)/, "m0_3"],
     [/^(4[ –-]?6|4–6|4-6)/, "m4_6"],
     [/^(7[ –-]?12|7–12|7-12)/, "m7_12"],
-    [/^(>|mais de\s*)?12/, "over_12"],
+    [/^(>|mais de\s+)\s*12/, "over_12"],
   ];
   for (const [re, out] of map) if (re.test(v)) return out;
   if (["m0_3", "m4_6", "m7_12", "over_12"].includes(v)) return v as "m0_3" | "m4_6" | "m7_12" | "over_12";
