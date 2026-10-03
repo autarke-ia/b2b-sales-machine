@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/autarke-ia/b2b-sales-machine/compare/v0.2.1...v0.2.2) (2026-10-03)
+
+
+### Documentation
+
+* **readme:** quick start — setup, login (senhas no .env), verificação e link p/ runbook ([#12](https://github.com/autarke-ia/b2b-sales-machine/issues/12)) ([3613e20](https://github.com/autarke-ia/b2b-sales-machine/commit/3613e20bbd190559799a2c88ef344a61cb6cc943))
+
 ## [0.2.1](https://github.com/autarke-ia/b2b-sales-machine/compare/v0.2.0...v0.2.1) (2026-10-03)
 
 
