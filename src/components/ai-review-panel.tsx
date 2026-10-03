@@ -203,6 +203,7 @@ interface SessionDto {
   version: number;
   active_seconds: number;
   started_at: string;
+  last_resumed_at: string;
 }
 
 /** Cronômetro (doc 05 §9): projeção do servidor — pausa/conclui/abandona com
@@ -220,7 +221,7 @@ function ValidationTimer({ datasetId, companyId, inputRevision }: { datasetId: s
   }, []);
 
   const projectedSeconds = session
-    ? session.active_seconds + (session.state === "active" ? Math.floor((Date.now() - new Date(session.started_at).getTime()) / 1000) - session.active_seconds : 0)
+    ? session.active_seconds + (session.state === "active" ? Math.floor((Date.now() - new Date(session.last_resumed_at).getTime()) / 1000) : 0)
     : 0;
 
   async function start() {

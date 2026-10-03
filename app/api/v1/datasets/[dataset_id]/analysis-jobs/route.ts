@@ -1,7 +1,8 @@
 import type { NextResponse as NR } from "next/server";
 import { errorJson } from "@/server/http/envelope";
 import { requireMutationContext } from "@/server/http/guard";
-import { badRequest, notFound, validation } from "@/server/http/errors";
+import { badRequest, notFound, tooMany, validation } from "@/server/http/errors";
+import { prisma } from "@/server/db/prisma";
 import { getDataset } from "@/server/services/datasets";
 import { createAnalysisJob, processAnalysisJob, type JobScope } from "@/server/services/ai-analysis";
 import { runIdempotent } from "@/server/http/idempotency";
@@ -29,6 +30,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ dataset_id: st
         { field: "scope", message: "icp_gaps ou eligible_enrichment" },
       ]);
     }
+    const open = await prisma.analysisJob.count({
+      where: { dataset_id: dataset.id, created_by: session.user.id, state: { in: ["queued", "running"] } },
+    });
+    if (open >= 2) throw tooMany(60);
     return await runIdempotent(req, session.user.id, raw, async () => {
       const job = await createAnalysisJob(dataset, body.company_ids as string[], scope as JobScope, session.user.id);
       // Fire-and-forget durável: itens estão no banco; o processamento segue

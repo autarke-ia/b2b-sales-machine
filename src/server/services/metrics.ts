@@ -13,10 +13,19 @@ export async function startSession(dataset: DatasetPayload, companyId: string, m
   if (existing) {
     throw conflict("REVIEW_SESSION_ACTIVE", "Você já tem uma sessão aberta para esta empresa.", { session_id: existing.id });
   }
-  await prisma.$transaction(async (tx) => {
-    await setActorContext(tx, { actor_user_id: userId, source: "system" });
-    await tx.reviewSession.create({ data: { dataset_id: dataset.id, company_id: companyId, user_id: userId, mode } });
-  });
+  try {
+    await prisma.$transaction(async (tx) => {
+      await setActorContext(tx, { actor_user_id: userId, source: "system" });
+      await tx.reviewSession.create({ data: { dataset_id: dataset.id, company_id: companyId, user_id: userId, mode } });
+    });
+  } catch (e) {
+    // O índice parcial unique (uma sessão aberta por usuário/empresa) decide a
+    // corrida que o findFirst-then-create não decide (finder P2-7).
+    if ((e as { code?: string }).code === "P2002") {
+      throw conflict("REVIEW_SESSION_ACTIVE", "Você já tem uma sessão aberta para esta empresa.");
+    }
+    throw e;
+  }
   const created = await prisma.reviewSession.findFirstOrThrow({
     where: { dataset_id: dataset.id, company_id: companyId, user_id: userId },
     orderBy: { started_at: "desc" },
@@ -80,7 +89,8 @@ export async function sessionEvent(
       throw conflict("VERSION_CONFLICT", "A sessão mudou. Recarregue.", { current_version: s.version });
     }
     const now = new Date();
-    const activeDelta = Math.floor((now.getTime() - s.last_resumed_at.getTime()) / 1000);
+    // Pausas não contam (doc 08 §9): delta só do intervalo ATIVO corrente.
+    const activeDelta = s.state === "active" ? Math.floor((now.getTime() - s.last_resumed_at.getTime()) / 1000) : 0;
     let next: Partial<typeof s> = {};
     switch (event) {
       case "pause":
@@ -160,11 +170,19 @@ export async function getMetrics(dataset: DatasetPayload) {
       : (activeSeconds[activeSeconds.length / 2 - 1]! + activeSeconds[activeSeconds.length / 2]!) / 2
     : null;
 
+  // Estado FINAL por sugestão (última decisão vence; defer→accept conta 1x
+  // accept) e inconclusivas fora do denominador (doc 08 §9).
+  const latestBySuggestion = new Map<string, (typeof decisions)[number]>();
+  for (const d of decisions) {
+    const prev = latestBySuggestion.get(d.suggestion_id);
+    if (!prev || prev.occurred_at.getTime() <= d.occurred_at.getTime()) latestBySuggestion.set(d.suggestion_id, d);
+  }
   const byRelation: Record<string, { accepted: number; rejected: number; deferred: number }> = {};
   let accepted = 0;
   let rejected = 0;
   let deferred = 0;
-  for (const d of decisions) {
+  for (const d of latestBySuggestion.values()) {
+    if (d.suggestion.relation === "inconclusive") continue;
     const bucket = (byRelation[d.suggestion.relation] ??= { accepted: 0, rejected: 0, deferred: 0 });
     bucket[d.action === "accept" ? "accepted" : d.action === "reject" ? "rejected" : "deferred"]++;
     if (d.action === "accept") accepted++;
@@ -209,7 +227,7 @@ export async function metricsCsv(dataset: DatasetPayload): Promise<string> {
     prisma.reviewDecision.findMany({
       where: { suggestion: { dataset_id: dataset.id } },
       orderBy: { occurred_at: "asc" },
-      include: { suggestion: { select: { company_id: true, relation: true } }, },
+      include: { suggestion: { select: { company_id: true, relation: true } } },
     }),
   ]);
   const cell = (v: unknown) => {
@@ -226,7 +244,7 @@ export async function metricsCsv(dataset: DatasetPayload): Promise<string> {
   }
   for (const d of decisions) {
     const s = d.suggestion;
-    const sess = sessions.find((x) => x.company_id === s.company_id && x.user_id === d.user_id && x.started_at.getTime() <= d.occurred_at.getTime() && (!x.finished_at || x.finished_at.getTime() >= d.occurred_at.getTime()) && (x.state === "active" || x.state === "paused"));
+    const sess = sessions.find((x) => x.id === d.review_session_id) ?? sessions.find((x) => x.company_id === s.company_id && x.user_id === d.user_id && x.started_at.getTime() <= d.occurred_at.getTime() && (!x.finished_at || x.finished_at.getTime() >= d.occurred_at.getTime()));
     lines.push(
       ["decision", dataset.id, s.company_id, d.user_id, sess?.id ?? "", d.suggestion_id, sess?.mode ?? "unassigned", "", s.relation, d.action, "", "", "", "", "", d.occurred_at.toISOString(), ""]
         .map(cell)

@@ -519,3 +519,32 @@ describeIfDb("MET01-06 — cronômetro e métricas", () => {
     expect(metrics.data.decisions.denominator).toBeGreaterThanOrEqual(1);
   });
 });
+
+describeIfDb("MET regressão finder — complete a partir de PAUSED não infla tempo", () => {
+  test("pausa conta só o intervalo ativo; concluir pausado não soma o tempo pausado", async () => {
+    const start = await call(sessionsRoute.POST, `${base()}/review-sessions`, {
+      method: "POST", body: { company_id: c4.pendingId, mode: "manual" }, session: ctx,
+      headers: { "idempotency-key": `mr1-${crypto.randomUUID()}` },
+    }, params());
+    const session = (await ok<{ id: string; version: number }>(start)).data;
+
+    await new Promise((r) => setTimeout(r, 1200)); // ~1,2s ativo
+    const pause = await call(eventsRoute.POST, `${base()}/review-sessions/${session.id}/events`, {
+      method: "POST", body: { event: "pause", expected_version: session.version }, session: ctx,
+      headers: { "idempotency-key": `mr2-${crypto.randomUUID()}` },
+    }, { ...params(), session_id: session.id });
+    const paused = (await ok<{ active_seconds: number; version: number }>(pause)).data;
+    expect(paused.active_seconds).toBeGreaterThanOrEqual(1);
+    expect(paused.active_seconds).toBeLessThanOrEqual(3);
+
+    await new Promise((r) => setTimeout(r, 1000)); // 1s PAUSADO — não pode entrar
+    const company = await prisma.company.findUniqueOrThrow({ where: { id: c4.pendingId } });
+    const complete = await call(eventsRoute.POST, `${base()}/review-sessions/${session.id}/events`, {
+      method: "POST", body: { event: "complete", expected_version: paused.version, expected_input_revision: company.input_revision }, session: ctx,
+      headers: { "idempotency-key": `mr3-${crypto.randomUUID()}` },
+    }, { ...params(), session_id: session.id });
+    expect(complete.status).toBe(200);
+    const done = (await ok<{ active_seconds: number }>(complete)).data;
+    expect(done.active_seconds).toBeLessThanOrEqual(paused.active_seconds + 1); // tolerância de 1s, não os 2,2s+
+  });
+});

@@ -14,9 +14,12 @@ export async function decideSuggestion(
   expectedSuggestionVersion: number,
   userId: string,
   requestId: string,
+  note: string | null = null,
 ): Promise<{ suggestion: ReturnType<typeof suggestionDto>; company_changed: boolean }> {
   return prisma.$transaction(async (tx) => {
-    await tx.$queryRaw`SELECT id FROM suggestions WHERE id = ${suggestionId}::uuid FOR UPDATE`;
+    // Sem lock pessimista inicial (finder P1-1: markStale em tx própria na MESMA
+    // linha auto-deadlockava por 5s). A serialização vem dos guards de versão +
+    // UPDATE condicional abaixo — corrida dupla converge para 409, não 500.
     const sugg = await tx.suggestion.findUnique({ where: { id: suggestionId } });
     if (!sugg || sugg.dataset_id !== dataset.id) throw notFound("Sugestão não encontrada nesta base.");
     if (sugg.state === "accepted" || sugg.state === "rejected" || sugg.state === "stale") {
@@ -63,13 +66,33 @@ export async function decideSuggestion(
       }
     }
 
+    const openSession = await tx.reviewSession.findFirst({
+      where: { dataset_id: dataset.id, company_id: sugg.company_id, user_id: userId, state: { in: ["active", "paused"] } },
+      select: { id: true },
+    });
     await tx.reviewDecision.create({
-      data: { suggestion_id: suggestionId, user_id: userId, action, idempotency_key: `${requestId}` },
+      data: {
+        suggestion_id: suggestionId,
+        user_id: userId,
+        action,
+        idempotency_key: `${requestId}`,
+        note,
+        ...(openSession ? { review_session_id: openSession.id } : {}),
+      },
     });
-    await tx.suggestion.update({
-      where: { id: suggestionId },
-      data: { state: action === "accept" ? "accepted" : action === "reject" ? "rejected" : "deferred", version: { increment: 1 }, updated_at: new Date(), updated_by: userId },
-    });
+    await tx.suggestion
+      .update({
+        // Guard de versão+estado no UPDATE: dois decides simultâneos → o segundo
+        // afeta 0 linhas (P2025) e vira 409 honesto.
+        where: { id: suggestionId, version: expectedSuggestionVersion },
+        data: { state: action === "accept" ? "accepted" : action === "reject" ? "rejected" : "deferred", version: { increment: 1 }, updated_at: new Date(), updated_by: userId },
+      })
+      .catch(async (e) => {
+        if ((e as { code?: string }).code === "P2025") {
+          throw conflict("SUGGESTION_STALE", "A sugestão mudou desde a leitura. Reanalise.", {});
+        }
+        throw e;
+      });
 
     let companyChanged = false;
     if (action === "accept") {
@@ -132,6 +155,9 @@ export function suggestionDto(s: Prisma.SuggestionGetPayload<Record<string, neve
 
 /** can_accept honesto (doc 05 §5): relação acionável + evidências vivas. */
 export async function listSuggestions(dataset: DatasetPayload, companyId: string | undefined, state: string | undefined) {
+  if (state && !["pending", "accepted", "rejected", "deferred", "stale"].includes(state)) {
+    throw validation("state inválido.", [{ field: "state", message: "enum desconhecido" }]);
+  }
   const rows = await prisma.suggestion.findMany({
     where: {
       dataset_id: dataset.id,

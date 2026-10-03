@@ -43,6 +43,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ dataset_id: st
         parsed.data.expected_suggestion_version,
         session.user.id,
         rid,
+        parsed.data.note ?? null,
       );
       return { status: 200, body: { data: result, meta: { request_id: rid } }, headers: { "X-Request-Id": rid } };
     });

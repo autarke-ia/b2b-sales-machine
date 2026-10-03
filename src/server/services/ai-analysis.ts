@@ -88,7 +88,7 @@ export async function processAnalysisJob(jobId: string): Promise<void> {
     const item = await prisma.$transaction(async (tx) => {
       const rows = await tx.$queryRaw<Array<{ id: string }>>`
         SELECT id FROM analysis_job_items
-        WHERE job_id = ${jobId}::uuid AND state = 'queued'
+        WHERE job_id = ${jobId}::uuid AND (state = 'queued' OR (state = 'running' AND lease_until < now()))
         ORDER BY company_id LIMIT 1 FOR UPDATE SKIP LOCKED`;
       if (!rows.length) return null;
       const claimed = await tx.analysisJobItem.update({
@@ -196,7 +196,7 @@ async function validateAndPersist(
   if (!valueMatchesField(p.field, p.value)) return false;
   const signal = signals.find((s) => s.id === p.signal_id);
   if (!signal) return false;
-  if (!signal.evidence_text.includes(p.quote)) return false;
+  if (!p.quote || p.quote.length < 8 || !signal.evidence_text.includes(p.quote)) return false;
 
   const current = (company as unknown as Record<string, unknown>)[p.field] ?? null;
   const relation = computeRelation(p.field, p.value, current);
@@ -264,10 +264,10 @@ export async function getJob(dataset: DatasetPayload, jobId: string) {
 export async function retryJob(dataset: DatasetPayload, jobId: string, userId: string) {
   const job = await prisma.analysisJob.findUnique({ where: { id: jobId }, include: { items: true } });
   if (!job || job.dataset_id !== dataset.id) throw notFound("Job não encontrado nesta base.");
-  if (job.state !== "partial_failed" && job.state !== "failed") {
+  if (job.state !== "partial_failed" && job.state !== "failed" && job.state !== "running") {
     throw conflict("INVALID_STATE_TRANSITION", `Retry disponível apenas para jobs parcial/totalmente falhos (estado atual: ${job.state}).`);
   }
-  const failedIds = job.items.filter((i) => i.state === "failed").map((i) => i.company_id);
+  const failedIds = job.items.filter((i) => i.state === "failed" || i.state === "running").map((i) => i.company_id);
   if (!failedIds.length) throw conflict("INVALID_STATE_TRANSITION", "Nenhum item falhou neste job.");
   const next = await createAnalysisJob(dataset, failedIds, job.scope as JobScope, userId);
   await prisma.analysisJob.update({ where: { id: next.job_id }, data: { retry_of_job_id: jobId } });

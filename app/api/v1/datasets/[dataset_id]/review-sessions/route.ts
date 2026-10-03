@@ -2,7 +2,6 @@ import type { NextResponse as NR } from "next/server";
 import { errorJson, okJson } from "@/server/http/envelope";
 import { requireMutationContext, requireSession } from "@/server/http/guard";
 import { badRequest, notFound, validation } from "@/server/http/errors";
-import { prisma, setActorContext } from "@/server/db/prisma";
 import { getDataset } from "@/server/services/datasets";
 import { startSession } from "@/server/services/metrics";
 import { runIdempotent } from "@/server/http/idempotency";
@@ -42,8 +41,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ dataset_id: st
     if (!parsed.success) {
       throw validation("Payload inválido.", parsed.error.issues.map((i) => ({ field: i.path.join("."), message: i.message })));
     }
-    void prisma;
-    void setActorContext;
     return await runIdempotent(req, session.user.id, raw, async () => {
       const created = await startSession(dataset, parsed.data.company_id, parsed.data.mode, session.user.id);
       return { status: 201, body: { data: created, meta: { request_id: rid } }, headers: { "X-Request-Id": rid } };
