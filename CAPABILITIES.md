@@ -5,8 +5,16 @@ Registro de capacidades reutilizáveis do projeto. Classificar com evidência de
 
 | Capacidade | Estado | Evidência | Desde |
 |---|---|---|---|
-| Motor de scoring determinístico (gate ICP L/U + prioridade S01–S10, `src/domain/scoring`) | parcial — portado e com suíte 52/52 verde em vitest; sem caller HTTP ainda | `tests/domain/scoring.test.ts` (52 pass), golden do seed reproduzido | Fase 0 |
-| Contrato HTTP OpenAPI (53 operações) | scaffold — especificado; só `/api/v1/health` implementado | `contracts/openapi.yaml`; `app/api/v1/health/route.ts` | v1.0.0 |
-| Seed normalizado do case (120/287/120/70) | scaffold — carregador escrito (`prisma/seed/`), não executado (aguarda banco) | `prisma/seed/demo.ts` | Fase 0 |
-| Schema Prisma + migration com auditoria append-only | scaffold — schema e SQL de triggers/grants escritos; `migrate deploy` pendente de RDS | `prisma/schema.prisma`, `prisma/migrations/0001_init/migration.sql` (738 linhas) | Fase 0 |
-| App Next.js (auth, CRUD, ranking, imports, regras, IA, métricas) | parcial — scaffold de pé: health 200, design tokens Autarkeia, build limpo; sem fluxo de negócio | smoke `/api/v1/health` 200; `pnpm build` verde | Fase 0 |
+| Motor de scoring determinístico (`src/domain/scoring`) | produção — chamado por `src/server/services/{companies,assessments}` nas rotas `/companies` (filtro icp_state) e `/ranking` | `tests/domain/scoring.test.ts` 52/52 + golden 56/37/27 no endpoint | Fase 0→1 |
+| Auth/sessão/CSRF/rate-limit (`src/server/auth`, `/api/v1/auth/*`) | produção — login/logout/session consumidos pela UI (`src/lib/api.ts`, shell) | `tests/contract/auth.test.ts` AUTH01–04; e2e jornada 1 | Fase 1 |
+| Middleware de idempotência (`src/server/http/idempotency`) | produção — todo POST de negócio marcado (atual: `POST /datasets`) | `tests/contract/api.test.ts` (replay/409) | Fase 1 |
+| Envelope HTTP + guards (`src/server/http`) | produção — todos os handlers passam por `route()`/`requireSession`/`requireMutationContext` | 84 testes de contrato | Fase 1 |
+| Ranking com snapshots imutáveis (`src/server/services/assessments`) | produção — `GET /datasets/{id}/ranking` e `/ranking.csv`; cache key completa; `is_stale` | `tests/contract/api.test.ts` INV-5/6/7/8; e2e export | Fase 1 |
+| UI login/shell/lista/ranking (tokens Autarkeia) | produção — `/login`, `/app`, `/app/:id/companies`, `/app/:id/ranking` | e2e jornada 1 (Playwright 2/2) | Fase 1 |
+| CSV de ranking (BOM, fórmula-neutralizado) | produção — botão Exportar usa o snapshot exibido | contrato CSV + e2e waitForRequest snapshot_id | Fase 1 |
+| CI (pr-gate + db-tests efêmero, release-please, ECR) | produção — branch `main` verde; ECR aguarda var AWS_ROLE_TO_ASSUME | runs na main pós-#2/#3 | Fase 0/CI |
+| CRUD de entidades + edição versionada 409 | ausente — Fase 2 | — | — |
+| Importação CSV/XLSX com prévia→commit | ausente — Fase 3 (recorte D2: CSVs) | — | — |
+| Regras versionadas (rascunho→publicação) | ausente — Fase 3 | — | — |
+| IA: jobs duráveis + adaptador + revisão transacional | ausente — Fase 4 | — | — |
+| Métricas/cronômetro do experimento | ausente — Fase 4 | — | — |

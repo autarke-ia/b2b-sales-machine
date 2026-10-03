@@ -25,9 +25,11 @@ describeIfDb("Seed idempotente", () => {
 
   test("IMP05 — rodar o seed duas vezes não duplica nem gera audit de no-op", async () => {
     const { execFileSync } = await import("node:child_process");
-    const before = await prisma.auditEvent.count();
+    // Escopo source='seed': o no-op é sobre o EFEITO do seed; eventos 'manual' de
+    // outras suítes (datasets de teste) não são atribuíveis a esta execução.
+    const before = await prisma.auditEvent.count({ where: { source: "seed" } });
     execFileSync("pnpm", ["db:seed"], { shell: true, stdio: "pipe" });
-    const after = await prisma.auditEvent.count();
+    const after = await prisma.auditEvent.count({ where: { source: "seed" } });
     expect(after).toBe(before);
     const demo = await prisma.dataset.findFirst({
       where: { kind: "demo" },

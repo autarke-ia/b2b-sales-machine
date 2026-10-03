@@ -27,16 +27,17 @@ export interface EngineCompany {
   operates_in_brazil: boolean | null;
   operating_status: OperatingStatus;
   segment: string | null;
-  archived_at?: string | null;
+  archived_at?: string | Date | null;
 }
 
 export interface EngineSignal {
   id: string;
   company_id: string;
   strength: Level;
-  observed_on: string | null;
+  /** ISO `YYYY-MM-DD` (seed JSON) ou Date (Prisma) — normalizado em `day()`. */
+  observed_on: string | Date | null;
   source_allowed: boolean | null;
-  archived_at?: string | null;
+  archived_at?: string | Date | null;
 }
 
 export interface EngineContact {
@@ -48,16 +49,16 @@ export interface EngineContact {
   full_name: string | null;
   job_title: string | null;
   channel_value: string | null;
-  archived_at?: string | null;
+  archived_at?: string | Date | null;
 }
 
 export interface EngineOpportunity {
   id: string;
   company_id: string;
   result: "won" | "lost" | "negotiating";
-  closed_on: string | null;
+  closed_on: string | Date | null;
   segment_at_close: string | null;
-  archived_at?: string | null;
+  archived_at?: string | Date | null;
 }
 
 export interface RuleConfig {
@@ -166,8 +167,9 @@ const levelFactor = (value: Level | null, rules: RuleConfig): Factor => {
   if (value === null) return null;
   return { low: 0, medium: rules.shared.medium_factor, high: 1 }[value];
 };
-const day = (date: string): number => Date.parse(date + "T00:00:00Z") / 86400000;
-const live = (record: { archived_at?: string | null }): boolean => !record.archived_at;
+const day = (date: string | Date): number =>
+  typeof date === "string" ? Date.parse(date + "T00:00:00Z") / 86400000 : Math.floor(date.getTime() / 86400000);
+const live = (record: { archived_at?: string | Date | null }): boolean => !record.archived_at;
 
 /** INV-14: regras inválidas falham cedo — nunca renormalizar pesos nem executar D03 desligável. */
 export function validateRuleConfig(r: RuleConfig): void {
