@@ -58,13 +58,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const base = datasetId ? `/app/${datasetId}` : "/app";
-  const nav = [
-    { href: `${base}/companies`, label: "Empresas", icon: Building2 },
-    { href: `${base}/ranking`, label: "Ranking", icon: Trophy },
-    { href: `${base}/rules`, label: "Regras", icon: Settings2 },
-    { href: `${base}/metrics`, label: "Métricas", icon: Timer },
-  ];
+  // Os índices são escopados a uma base. Sem `datasetId` na URL (tela de seleção
+  // de base, `/app`), NÃO renderizar links — `/app/ranking` etc. não existem e
+  // devolviam 404 (o menu ficava clicável para rotas inexistentes). O menu por
+  // base só aparece dentro de uma base selecionada.
+  const nav = datasetId
+    ? [
+        { href: `/app/${datasetId}/companies`, label: "Empresas", icon: Building2 },
+        { href: `/app/${datasetId}/ranking`, label: "Ranking", icon: Trophy },
+        { href: `/app/${datasetId}/rules`, label: "Regras", icon: Settings2 },
+        { href: `/app/${datasetId}/metrics`, label: "Métricas", icon: Timer },
+      ]
+    : [];
 
   return (
     <div className="flex min-h-screen">
