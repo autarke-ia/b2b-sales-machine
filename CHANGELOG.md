@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1](https://github.com/autarke-ia/b2b-sales-machine/compare/v0.3.0...v0.3.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* **app:** menu lateral não linka índices sem dataset (corrige 404) ([#21](https://github.com/autarke-ia/b2b-sales-machine/issues/21)) ([16246e1](https://github.com/autarke-ia/b2b-sales-machine/commit/16246e1b5b79726d3a6c39144216d9a4462d9002))
+* **runbooks:** receita de deploy por digest ([@sha256](https://github.com/sha256)), corrige @${TAG} inválido ([#19](https://github.com/autarke-ia/b2b-sales-machine/issues/19)) ([0ee2b20](https://github.com/autarke-ia/b2b-sales-machine/commit/0ee2b203a97276da0e6fed9b278e3c212fa05656))
+
 ## [0.3.0](https://github.com/autarke-ia/b2b-sales-machine/compare/v0.2.2...v0.3.0) (2026-10-03)
 
 
